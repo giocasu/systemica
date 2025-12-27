@@ -119,16 +119,24 @@ Automatically produces resources each tick.
 | Property | Description |
 |----------|-------------|
 | Label | Node name |
-| Resources | Accumulated resources |
-| Production Rate | Resources produced per tick |
+| Buffer | Current resources in buffer (used in formulas) |
+| Buffer Capacity | Maximum buffer size (-1 = unlimited) |
+| Max Total Production | Total resources this source can ever produce (-1 = infinite) |
+| Production Rate | Resources produced per tick (supports decimals: 0.1, 0.5, etc.) |
+| Distribution Mode | **Continuous** (split equally) or **Discrete** (round-robin) |
 | Probability | % activation chance per tick (0-100) |
-| Use Formula | Use formula instead of fixed rate |
+| Processing Mode | Fixed rate, Formula, or Script |
+
+**Distribution Modes:**
+- **💧 Continuous**: Divisible resources (water, gold, energy). 1/tick → 2 outputs = 0.5 each
+- **🔩 Discrete**: Atomic resources (items, cards). 1/tick → 2 outputs = alternating 1,0,1,0...
 
 **Use cases:**
 - Enemy spawning
 - Passive gold generation
 - Health/mana regeneration
 - Quest rewards
+- Limited item drops (use Max Total Production)
 
 ---
 
@@ -139,7 +147,7 @@ Accumulates resources with optional capacity.
 | Property | Description |
 |----------|-------------|
 | Label | Node name |
-| Resources | Current resources |
+| Resources | Current resources (supports decimals) |
 | Capacity | Maximum (-1 = unlimited) |
 | Probability | % outgoing transfer chance |
 
@@ -308,21 +316,24 @@ Magic system with mana regeneration and spell consumption.
 
 ## 📐 Custom Formulas
 
-For **Source** nodes, you can use formulas instead of a fixed rate.
+For **Source** and **Converter** nodes, you can use formulas instead of fixed rates.
 
 ### Activation
 
-1. Select a Source node
-2. In the properties panel, enable **"Use Formula"**
+1. Select a Source or Converter node
+2. In the properties panel, click **"📐 Formula"** mode
 3. Enter the formula
 
 ### Available Variables
 
 | Variable | Description |
 |----------|-------------|
-| `resources` | Current resources in the node |
+| `resources` | Current resources in the node buffer |
 | `tick` | Current simulation tick |
 | `capacity` | Node capacity |
+| `totalProduced` | (Source only) Total resources produced so far |
+| `produced` | Alias for `totalProduced` |
+| `input` | (Converter only) Resources available to convert |
 
 ### Available Functions
 
@@ -342,11 +353,12 @@ For **Source** nodes, you can use formulas instead of a fixed rate.
 ### Formula Examples
 
 ```javascript
-resources * 0.1          // Produce 10% of current resources
+// Decimals are fully supported!
+0.1                      // Produce 0.1 per tick
+1 + resources * 0.1      // Base 1, plus 10% of buffer
 10 + tick * 0.5          // Increases linearly over time
 min(resources, 5)        // Produce max 5 per tick
-max(0, 100 - resources)  // Produce more when low
-floor(resources / 10)    // Tiered production
+max(1, floor(produced / 10))  // +1 every 10 produced
 random() * 10            // Random 0-10
 5 + sin(tick) * 3        // Cyclic oscillation (2-8)
 pow(1.1, tick)           // Exponential growth

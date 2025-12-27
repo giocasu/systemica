@@ -118,16 +118,24 @@ Produce risorse automaticamente ad ogni tick.
 | Proprietà | Descrizione |
 |-----------|-------------|
 | Label | Nome del nodo |
-| Resources | Risorse accumulate |
-| Production Rate | Risorse prodotte per tick |
+| Buffer | Risorse nel buffer corrente (usabile nelle formule) |
+| Buffer Capacity | Capacità massima del buffer (-1 = illimitato) |
+| Max Total Production | Totale risorse producibili (-1 = infinito) |
+| Production Rate | Risorse prodotte per tick (supporta decimali: 0.1, 0.5, etc.) |
+| Distribution Mode | **Continuous** (dividi equamente) o **Discrete** (round-robin) |
 | Probability | % di attivazione per tick (0-100) |
-| Use Formula | Usa formula invece di rate fisso |
+| Processing Mode | Fixed rate, Formula, o Script |
+
+**Modalità di Distribuzione:**
+- **💧 Continuous**: Risorse divisibili (acqua, oro, energia). 1/tick → 2 output = 0.5 ciascuno
+- **🔩 Discrete**: Risorse atomiche (oggetti, carte). 1/tick → 2 output = alternato 1,0,1,0...
 
 **Esempi d'uso:**
 - Spawn di nemici
 - Generazione passiva di gold
 - Rigenerazione vita/mana
 - Quest rewards
+- Drop limitati (usa Max Total Production)
 
 ---
 
@@ -138,7 +146,7 @@ Accumula risorse con capacità opzionale.
 | Proprietà | Descrizione |
 |-----------|-------------|
 | Label | Nome del nodo |
-| Resources | Risorse attuali |
+| Resources | Risorse attuali (supporta decimali) |
 | Capacity | Massimo (-1 = illimitato) |
 | Probability | % di trasferimento in uscita |
 
@@ -319,9 +327,11 @@ Per i nodi **Source**, puoi usare formule invece di un rate fisso.
 
 | Variabile | Descrizione |
 |-----------|-------------|
-| `resources` | Risorse attuali nel nodo |
+| `resources` | Buffer attuale (risorse immagazzinate nel Source) |
 | `tick` | Tick corrente della simulazione |
-| `capacity` | Capacità del nodo |
+| `capacity` | Capacità del buffer (-1 = illimitata) |
+| `totalProduced` | Totale risorse prodotte dall'inizio |
+| `produced` | Alias di totalProduced |
 
 ### Funzioni Disponibili
 
@@ -341,7 +351,9 @@ Per i nodi **Source**, puoi usare formule invece di un rate fisso.
 ### Esempi di Formule
 
 ```javascript
-resources * 0.1          // Produce 10% delle risorse attuali
+// Valori decimali supportati!
+0.5                      // Produce 0.5 per tick
+resources * 0.1          // Produce 10% del buffer
 10 + tick * 0.5          // Aumenta linearmente nel tempo
 min(resources, 5)        // Produce max 5 per tick
 max(0, 100 - resources)  // Produce di più quando basso
@@ -349,6 +361,10 @@ floor(resources / 10)    // Produzione a scaglioni
 random() * 10            // Casuale 0-10
 5 + sin(tick) * 3        // Oscillazione ciclica (2-8)
 pow(1.1, tick)           // Crescita esponenziale
+
+// Uso di totalProduced (limiti morbidi)
+max(0, 10 - totalProduced * 0.1)  // Rallenta dopo molte produzioni
+100 - produced           // Produce fino a 100 totali
 ```
 
 ---
@@ -377,9 +393,11 @@ Per logiche complesse oltre le semplici formule, i nodi **Source** e **Converter
 | Variabile | Descrizione |
 |-----------|-------------|
 | `input` | Risorse ricevute (Converter) o risorse attuali (Source) |
-| `resources` | Risorse attuali nel nodo |
+| `resources` | Risorse attuali nel nodo (buffer per Source) |
 | `capacity` | Capacità del nodo (-1 significa illimitata) |
 | `tick` | Tick corrente della simulazione |
+| `totalProduced` | Totale risorse prodotte dall'inizio (solo Source) |
+| `produced` | Alias di totalProduced (solo Source) |
 
 ### Funzioni Disponibili
 

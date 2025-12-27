@@ -63,6 +63,17 @@ Ultimo aggiornamento: 27 Dicembre 2025
 
 ## 📝 Note di Sviluppo
 
+### v0.11.0 (27/12/2025)
+- ✅ **Distribution Mode** per Source: Continuous (divisibile) vs Discrete (round-robin atomico)
+- ✅ **Limite produzione Source**: `maxProduction` per limitare produzione totale
+- ✅ **Contatore totalProduced**: Traccia quante risorse ha prodotto un Source
+- ✅ **Supporto decimali completo**: Tutti i valori (rate, ratio, threshold, flow) supportano decimali
+- ✅ **Formula con decimali**: Rimosso Math.floor() - ora `0.1` produce 0.1/tick
+- ✅ **Nuove variabili formula**: `totalProduced` / `produced` disponibili per Source
+- ✅ **Fix distribuzione risorse**: Corretto bug dove 1 Source → N Pool creava N risorse invece di 1
+- ✅ Pool inizia con 0 risorse di default (era 10)
+- ✅ Rimosso messaggio "Start simulation" dal chart vuoto
+
 ### v0.10.0 (27/12/2025)
 - ✅ Auto-save to localStorage (debounced, every 2 seconds)
 - ✅ Shareable links with URL compression (LZ-string)
