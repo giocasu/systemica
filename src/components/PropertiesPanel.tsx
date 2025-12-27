@@ -64,6 +64,32 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
         </div>
       )}
 
+      {data.nodeType === 'converter' && (
+        <>
+          <div className="property-group">
+            <label>Input Ratio (resources consumed)</label>
+            <input
+              type="number"
+              value={data.inputRatio}
+              min={1}
+              onChange={(e) => handleChange('inputRatio', parseInt(e.target.value) || 1)}
+            />
+          </div>
+          <div className="property-group">
+            <label>Output Ratio (resources produced)</label>
+            <input
+              type="number"
+              value={data.outputRatio}
+              min={1}
+              onChange={(e) => handleChange('outputRatio', parseInt(e.target.value) || 1)}
+            />
+          </div>
+          <div className="property-group info">
+            <span>⚙️ Converts {data.inputRatio} → {data.outputRatio}</span>
+          </div>
+        </>
+      )}
+
       <div className="property-group">
         <label>Active</label>
         <select

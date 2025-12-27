@@ -10,6 +10,9 @@ export interface NodeData extends Record<string, unknown> {
   productionRate: number;   // resources per tick
   consumptionRate: number;  // for drains
   isActive: boolean;
+  // Converter specific
+  inputRatio: number;       // input resources needed
+  outputRatio: number;      // output resources produced
 }
 
 // Default values for each node type
@@ -20,6 +23,8 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     productionRate: 1,
     consumptionRate: 0,
     isActive: true,
+    inputRatio: 1,
+    outputRatio: 1,
   },
   pool: {
     resources: 10,
@@ -27,6 +32,8 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     productionRate: 0,
     consumptionRate: 0,
     isActive: true,
+    inputRatio: 1,
+    outputRatio: 1,
   },
   drain: {
     resources: 0,
@@ -34,6 +41,8 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     productionRate: 0,
     consumptionRate: 1,
     isActive: true,
+    inputRatio: 1,
+    outputRatio: 1,
   },
   converter: {
     resources: 0,
@@ -41,6 +50,8 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     productionRate: 0,
     consumptionRate: 0,
     isActive: true,
+    inputRatio: 2,          // requires 2 input
+    outputRatio: 1,         // produces 1 output
   },
   gate: {
     resources: 0,
@@ -48,6 +59,8 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     productionRate: 0,
     consumptionRate: 0,
     isActive: true,
+    inputRatio: 1,
+    outputRatio: 1,
   },
 };
 

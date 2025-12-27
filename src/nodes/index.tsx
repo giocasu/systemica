@@ -47,7 +47,13 @@ export const DrainNode = memo(({ data, selected }: CustomNodeProps) => (
 
 // Converter Node - transforms resources
 export const ConverterNode = memo(({ data, selected }: CustomNodeProps) => (
-  <BaseNode data={data} selected={selected} className="node-converter" />
+  <div className={`custom-node node-converter ${selected ? 'selected' : ''}`}>
+    <Handle type="target" position={Position.Left} />
+    <div className="node-label">{data.label}</div>
+    <div className="node-value">{data.resources}</div>
+    <div className="node-ratio">⚙️ {data.inputRatio}→{data.outputRatio}</div>
+    <Handle type="source" position={Position.Right} />
+  </div>
 ));
 
 // Gate Node - controls flow

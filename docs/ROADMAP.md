@@ -9,7 +9,7 @@ Ultimo aggiornamento: 27 Dicembre 2025
 | **Salvataggio/Caricamento** | Export/import JSON del diagramma | ✅ Completato |
 | **Flow rate sulle connessioni** | Configurare quante risorse fluiscono per edge | ✅ Completato |
 | **Delete con tastiera** | Backspace/Delete per rimuovere nodi/edges | ✅ Completato |
-| **Converter funzionante** | Logica di conversione input→output | ❌ Parziale |
+| **Converter funzionante** | Logica di conversione input→output | ✅ Completato |
 
 ## 🟡 Priorità Media (Usabilità)
 
@@ -39,6 +39,11 @@ Ultimo aggiornamento: 27 Dicembre 2025
 - ❌ Da fare
 
 ## 📝 Note di Sviluppo
+
+### v0.3.0 (27/12/2025)
+- ✅ Converter funzionante con input/output ratio configurabile
+- ✅ Logica di conversione: accumula input, converte quando raggiunge inputRatio
+- ✅ Pannello proprietà mostra ratio per converter
 
 ### v0.2.0 (27/12/2025)
 - ✅ Salvataggio progetti (💾 Save) - esporta JSON

@@ -116,6 +116,8 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         productionRate: defaults.productionRate ?? 0,
         consumptionRate: defaults.consumptionRate ?? 0,
         isActive: defaults.isActive ?? true,
+        inputRatio: defaults.inputRatio ?? 1,
+        outputRatio: defaults.outputRatio ?? 1,
       },
     };
 
@@ -236,6 +238,61 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         // Add to target (except for drain nodes)
         if (target.data.nodeType !== 'drain') {
           target.data.resources += actualFlow;
+        }
+      }
+    }
+
+    // Phase 3: Process converters
+    // Converters transform accumulated input into output
+    for (const node of nodeMap.values()) {
+      if (node.data.nodeType === 'converter' && node.data.isActive) {
+        const inputRatio = node.data.inputRatio ?? 2;
+        const outputRatio = node.data.outputRatio ?? 1;
+        
+        // Calculate how many conversions can happen
+        const conversions = Math.floor(node.data.resources / inputRatio);
+        
+        if (conversions > 0) {
+          // Find output edges from this converter
+          const outputEdges = edges.filter(e => e.source === node.id);
+          
+          if (outputEdges.length > 0) {
+            // Calculate total output to distribute
+            const totalOutput = conversions * outputRatio;
+            const outputPerEdge = Math.floor(totalOutput / outputEdges.length);
+            
+            let actualOutputUsed = 0;
+            
+            for (const edge of outputEdges) {
+              const target = nodeMap.get(edge.target);
+              if (!target) continue;
+              
+              // Check target capacity
+              let targetSpace: number;
+              if (target.data.nodeType === 'drain') {
+                targetSpace = outputPerEdge;
+              } else if (target.data.capacity === -1) {
+                targetSpace = outputPerEdge;
+              } else {
+                targetSpace = Math.max(0, target.data.capacity - target.data.resources);
+              }
+              
+              const actualOutput = Math.min(outputPerEdge, targetSpace);
+              
+              if (actualOutput > 0 && target.data.nodeType !== 'drain') {
+                target.data.resources += actualOutput;
+                actualOutputUsed += actualOutput;
+              } else if (target.data.nodeType === 'drain') {
+                actualOutputUsed += actualOutput;
+              }
+            }
+            
+            // Consume input based on what was actually output
+            // Calculate how many full conversions were actually used
+            const actualConversions = Math.ceil(actualOutputUsed / outputRatio);
+            const inputConsumed = actualConversions * inputRatio;
+            node.data.resources = Math.max(0, node.data.resources - inputConsumed);
+          }
         }
       }
     }
