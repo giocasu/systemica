@@ -1,5 +1,5 @@
 import { useSimulatorStore } from '../store/simulatorStore';
-import { NodeData } from '../types';
+import { NodeData, nodeConfig } from '../types';
 
 interface PropertiesPanelProps {
   nodeId: string;
@@ -12,6 +12,7 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
   if (!node) return null;
 
   const data = node.data as NodeData;
+  const typeInfo = nodeConfig[data.nodeType];
 
   const handleChange = (field: keyof NodeData, value: string | number | boolean) => {
     updateNodeData(nodeId, { [field]: value });
@@ -20,6 +21,11 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
   return (
     <div className="properties-panel">
       <h3>📝 Properties</h3>
+
+      <div className="property-type">
+        <span className="type-icon">{typeInfo.icon}</span>
+        <span className="type-label">{typeInfo.label}</span>
+      </div>
 
       <div className="property-group">
         <label>Label</label>

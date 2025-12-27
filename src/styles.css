@@ -254,6 +254,26 @@ body {
   font-size: 0.95rem;
 }
 
+.property-type {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #0f3460;
+  border-radius: 6px;
+  margin-bottom: 15px;
+}
+
+.property-type .type-icon {
+  font-size: 1.3rem;
+}
+
+.property-type .type-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
 .property-group {
   margin-bottom: 12px;
 }
