@@ -20,6 +20,8 @@ body {
 .flow-wrapper {
   flex: 1;
   background: #1a1a2e;
+  position: relative;
+  overflow: hidden;
 }
 
 /* React Flow customization */
@@ -51,10 +53,12 @@ body {
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 15px;
   padding: 10px 20px;
   background: #16213e;
   border-bottom: 1px solid #0f3460;
+  flex-wrap: wrap;
+  min-height: 50px;
 }
 
 .toolbar h1 {
@@ -751,5 +755,179 @@ body {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateX(-10px); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+/* Draggable Panels */
+.draggable-panel {
+  position: absolute;
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.draggable-panel.collapsed {
+  min-width: auto !important;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #0f3460;
+  cursor: grab;
+  user-select: none;
+}
+
+.panel-header:active {
+  cursor: grabbing;
+}
+
+.panel-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.panel-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.panel-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+
+.panel-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.panel-close:hover {
+  background: #e94560;
+  color: #fff;
+}
+
+.panel-content {
+  padding: 0;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Properties panel styling adjustments */
+.properties-draggable .panel-content {
+  padding: 0;
+}
+
+.properties-draggable .properties-panel {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  width: 100%;
+}
+
+.properties-draggable .properties-panel h3 {
+  display: none;
+}
+
+/* Edge properties styling adjustments */
+.properties-draggable .edge-properties-panel {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  width: 100%;
+}
+
+.properties-draggable .edge-properties-panel h3 {
+  display: none;
+}
+
+/* Chart panel styling adjustments */
+.chart-draggable .panel-content {
+  padding: 10px;
+}
+
+.chart-draggable .resource-chart {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.chart-draggable .resource-chart h4 {
+  display: none;
+}
+
+/* Node Palette Draggable */
+.palette-draggable .panel-content {
+  padding: 8px;
+}
+
+.node-palette-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.palette-item-vertical {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #0f3460;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: grab;
+  user-select: none;
+  transition: all 0.2s;
+}
+
+.palette-item-vertical:hover {
+  border-color: #e94560;
+  background: #1a3a6e;
+}
+
+.palette-item-vertical:active {
+  cursor: grabbing;
+}
+
+.palette-item-vertical .palette-icon {
+  font-size: 1.2rem;
+}
+
+.palette-item-vertical .palette-label {
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+/* Node Palette Panel (fixed) */
+.node-palette-panel {
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.palette-header {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #0f3460;
 }
 

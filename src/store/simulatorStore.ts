@@ -84,6 +84,7 @@ interface SimulatorState {
   tick: () => void;
   step: () => void;
   reset: () => void;
+  newProject: () => void;
   executeScriptsAsync: () => Promise<void>;
   
   // Simulation speed
@@ -582,6 +583,20 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       currentTick: 0,
       isRunning: false,
       resourceHistory: [],
+    });
+  },
+
+  newProject: () => {
+    set({
+      nodes: [],
+      edges: [],
+      selectedNodeId: null,
+      selectedEdgeId: null,
+      currentTick: 0,
+      isRunning: false,
+      resourceHistory: [],
+      history: [],
+      historyIndex: -1,
     });
   },
 

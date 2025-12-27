@@ -13,6 +13,7 @@
     "quickjs-emscripten": "^0.31.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-draggable": "^4.5.0",
     "recharts": "^3.6.0",
     "zustand": "^4.4.7"
   },

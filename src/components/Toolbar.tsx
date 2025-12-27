@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import { useSimulatorStore } from '../store/simulatorStore';
-import { NodeType, nodeConfig } from '../types';
 import { TemplateDropdown } from './TemplateDropdown';
 
 export function Toolbar() {
@@ -8,7 +7,8 @@ export function Toolbar() {
     isRunning, 
     toggleRunning, 
     step, 
-    reset, 
+    reset,
+    newProject,
     exportToFile, 
     importFromFile,
     ticksPerSecond,
@@ -23,12 +23,16 @@ export function Toolbar() {
     clipboard,
     exportStatsToCSV,
     resourceHistory,
+    nodes,
   } = useSimulatorStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const onDragStart = (event: React.DragEvent, nodeType: NodeType) => {
-    event.dataTransfer.setData('application/reactflow', nodeType);
-    event.dataTransfer.effectAllowed = 'move';
+  const handleNew = () => {
+    if (nodes.length > 0) {
+      if (confirm('Create new project? Unsaved changes will be lost.')) {
+        newProject();
+      }
+    }
   };
 
   const handleSave = () => {
@@ -93,6 +97,7 @@ export function Toolbar() {
       <span className="separator">|</span>
 
       <div className="controls">
+        <button onClick={handleNew} title="New project">📄 New</button>
         <button onClick={handleSave}>💾 Save</button>
         <button onClick={handleLoad}>📂 Load</button>
         <button onClick={exportStatsToCSV} disabled={resourceHistory.length === 0} title="Export stats to CSV">📊 CSV</button>
@@ -108,22 +113,6 @@ export function Toolbar() {
       <span className="separator">|</span>
 
       <TemplateDropdown />
-
-      <span className="separator">|</span>
-
-      <div className="node-palette">
-        {(Object.keys(nodeConfig) as NodeType[]).map((type) => (
-          <div
-            key={type}
-            className="palette-item"
-            draggable
-            onDragStart={(e) => onDragStart(e, type)}
-          >
-            <span className="palette-icon">{nodeConfig[type].icon}</span>
-            <span className="palette-label">{nodeConfig[type].label}</span>
-          </div>
-        ))}
-      </div>
     </header>
   );
 }

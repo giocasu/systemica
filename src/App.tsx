@@ -19,6 +19,8 @@ import { PropertiesPanel } from './components/PropertiesPanel';
 import { EdgePropertiesPanel } from './components/EdgePropertiesPanel';
 import { StatusBar } from './components/StatusBar';
 import { ResourceChart } from './components/ResourceChart';
+import { DraggablePanel } from './components/DraggablePanel';
+import { NodePalette } from './components/NodePalette';
 import { NodeType } from './types';
 import { 
   saveToLocalStorage, 
@@ -55,6 +57,7 @@ function Flow() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
   const [shareMessage, setShareMessage] = useState<string | null>(null);
+  const [showChart, setShowChart] = useState(true);
   const initialLoadDone = useRef(false);
 
   // Load from URL share link or localStorage on mount
@@ -258,17 +261,60 @@ function Flow() {
               >
                 🔗 Share
               </button>
+              <button 
+                className="share-btn" 
+                onClick={() => setShowChart(!showChart)}
+                title={showChart ? 'Hide chart' : 'Show chart'}
+              >
+                📊 {showChart ? 'Hide' : 'Show'} Chart
+              </button>
               {shareMessage && <span className="share-message">{shareMessage}</span>}
             </div>
           </Panel>
-          <Panel position="top-right">
-            {selectedNodeId && <PropertiesPanel nodeId={selectedNodeId} />}
-            {selectedEdgeId && <EdgePropertiesPanel edgeId={selectedEdgeId} />}
-          </Panel>
-          <Panel position="bottom-right">
-            <ResourceChart />
+          <Panel position="top-left" style={{ top: 60 }}>
+            <div className="node-palette-panel">
+              <div className="palette-header">🧩 Nodes</div>
+              <NodePalette />
+            </div>
           </Panel>
         </ReactFlow>
+        
+        {/* Draggable Properties Panel */}
+        {selectedNodeId && (
+          <DraggablePanel 
+            title="📝 Properties"
+            defaultPosition={{ x: window.innerWidth - 300, y: 80 }}
+            onClose={() => setSelectedNode(null)}
+            className="properties-draggable"
+          >
+            <PropertiesPanel nodeId={selectedNodeId} />
+          </DraggablePanel>
+        )}
+        
+        {/* Draggable Edge Properties Panel */}
+        {selectedEdgeId && (
+          <DraggablePanel 
+            title="🔗 Connection"
+            defaultPosition={{ x: window.innerWidth - 300, y: 80 }}
+            onClose={() => setSelectedEdge(null)}
+            className="properties-draggable"
+          >
+            <EdgePropertiesPanel edgeId={selectedEdgeId} />
+          </DraggablePanel>
+        )}
+        
+        {/* Draggable Chart Panel */}
+        {showChart && (
+          <DraggablePanel 
+            title="📊 Resource Chart"
+            defaultPosition={{ x: window.innerWidth - 420, y: window.innerHeight - 280 }}
+            onClose={() => setShowChart(false)}
+            className="chart-draggable"
+            minWidth={380}
+          >
+            <ResourceChart />
+          </DraggablePanel>
+        )}
       </div>
       <StatusBar />
     </div>

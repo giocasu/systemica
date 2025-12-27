@@ -38,7 +38,45 @@ Ultimo aggiornamento: 27 Dicembre 2025
 - 🔄 In corso
 - ❌ Da fare
 
+---
+
+## 🚀 Future Features
+
+### UI Enhancements
+- 🎯 **NodeToolbar**: Quick actions (delete, duplicate, lock) on selected nodes using ReactFlow's NodeToolbar component
+  - Reference: https://reactflow.dev/examples/nodes/node-toolbar
+- 🔧 **Fully Draggable Panels**: Make all panels (palette, properties, charts) freely draggable and resizable
+- 📱 **Responsive Layout**: Better support for smaller screens and mobile devices
+
+### Architecture
+- 🏗️ **"Everything is a Script" (Hybrid)**: Allow any node property to be either a simple value OR a JavaScript formula/script
+  - Maintain backward compatibility with simple values
+  - Scripts have access to full context (neighbors, global state, time)
+  - Progressive complexity: users can start simple and add scripts when needed
+
+### Simulation
+- 📊 **Advanced Analytics**: More chart types, statistics, and export options
+- 🔄 **Batch Simulation**: Run multiple simulations with varying parameters
+- 📈 **Monte Carlo Mode**: Statistical analysis across many runs
+
+---
+
 ## 📝 Note di Sviluppo
+
+### v0.10.0 (27/12/2025)
+- ✅ Auto-save to localStorage (debounced, every 2 seconds)
+- ✅ Shareable links with URL compression (LZ-string)
+- ✅ Validation buttons for formulas and scripts
+- ✅ Node palette as fixed side panel
+- ✅ Draggable properties and chart panels
+- ✅ New project button with confirmation
+
+### v0.9.0 (27/12/2025)
+- ✅ JavaScript script support with QuickJS-emscripten (WASM sandbox)
+- ✅ Secure sandboxed execution (no access to DOM, network, filesystem)
+- ✅ Script context: `value`, `tick`, `total_produced`, `total_consumed`, `Math`
+- ✅ Toggle between formula mode and script mode
+- ✅ Script validation with error feedback
 
 ### v0.8.0 (27/12/2025)
 - ✅ Formule custom per production rate
