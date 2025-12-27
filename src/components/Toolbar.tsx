@@ -66,7 +66,7 @@ export function Toolbar() {
 
   return (
     <header className="toolbar">
-      <h1>🎮 Game Economy Simulator</h1>
+      <h1>⚙️ Systemica</h1>
       
       <div className="controls">
         <button onClick={toggleRunning} className={isRunning ? 'active' : ''}>

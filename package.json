@@ -1,7 +1,7 @@
 {
-  "name": "game-economy-simulator",
+  "name": "systemica",
   "version": "0.11.0",
-  "description": "Machinations-style game economy simulator with producers and consumers",
+  "description": "Visual game economy simulator inspired by Machinations",
   "license": "MIT",
   "type": "module",
   "scripts": {
