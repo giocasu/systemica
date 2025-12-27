@@ -17,6 +17,18 @@ export interface EdgeData {
   [key: string]: unknown;
 }
 
+// History state for undo/redo
+interface HistoryState {
+  nodes: Node<NodeData>[];
+  edges: Edge<EdgeData>[];
+}
+
+// Clipboard for copy/paste
+interface ClipboardData {
+  nodes: Node<NodeData>[];
+  edges: Edge<EdgeData>[];
+}
+
 // Project save format
 export interface ProjectData {
   version: string;
@@ -35,6 +47,16 @@ interface SimulatorState {
   isRunning: boolean;
   currentTick: number;
   
+  // Simulation speed (ticks per second)
+  ticksPerSecond: number;
+  
+  // History for undo/redo
+  history: HistoryState[];
+  historyIndex: number;
+  
+  // Clipboard
+  clipboard: ClipboardData | null;
+  
   // Actions
   onNodesChange: (changes: NodeChange<Node<NodeData>>[]) => void;
   onEdgesChange: (changes: EdgeChange<Edge<EdgeData>>[]) => void;
@@ -51,6 +73,20 @@ interface SimulatorState {
   step: () => void;
   reset: () => void;
   
+  // Simulation speed
+  setTicksPerSecond: (tps: number) => void;
+  
+  // Undo/Redo
+  pushHistory: () => void;
+  undo: () => void;
+  redo: () => void;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
+  
+  // Copy/Paste
+  copySelected: () => void;
+  paste: () => void;
+  
   // Save/Load
   saveProject: (name: string) => ProjectData;
   loadProject: (data: ProjectData) => void;
@@ -60,6 +96,8 @@ interface SimulatorState {
 
 let nodeIdCounter = 1;
 
+const MAX_HISTORY = 50;
+
 export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   nodes: [],
   edges: [],
@@ -67,6 +105,16 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   selectedEdgeId: null,
   isRunning: false,
   currentTick: 0,
+  
+  // Simulation speed
+  ticksPerSecond: 1,
+  
+  // History
+  history: [],
+  historyIndex: -1,
+  
+  // Clipboard
+  clipboard: null,
 
   onNodesChange: (changes) => {
     set((state) => ({
@@ -101,6 +149,8 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   },
 
   addNode: (type, position) => {
+    get().pushHistory();
+    
     const id = `node_${nodeIdCounter++}`;
     const defaults = nodeDefaults[type];
     
@@ -165,6 +215,8 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     const { selectedNodeId, nodes, edges } = get();
     if (!selectedNodeId) return;
     
+    get().pushHistory();
+    
     // Remove node and all connected edges
     set({
       nodes: nodes.filter((n) => n.id !== selectedNodeId),
@@ -176,6 +228,8 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   deleteSelectedEdge: () => {
     const { selectedEdgeId, edges } = get();
     if (!selectedEdgeId) return;
+    
+    get().pushHistory();
     
     set({
       edges: edges.filter((e) => e.id !== selectedEdgeId),
@@ -399,5 +453,149 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsText(file);
     });
+  },
+
+  // Simulation speed
+  setTicksPerSecond: (tps: number) => {
+    set({ ticksPerSecond: Math.max(0.1, Math.min(10, tps)) });
+  },
+
+  // Push current state to history
+  pushHistory: () => {
+    const { nodes, edges, history, historyIndex } = get();
+    
+    // Clone current state
+    const currentState: HistoryState = {
+      nodes: JSON.parse(JSON.stringify(nodes)),
+      edges: JSON.parse(JSON.stringify(edges)),
+    };
+    
+    // Remove any future history (if we undid and then made changes)
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(currentState);
+    
+    // Limit history size
+    if (newHistory.length > MAX_HISTORY) {
+      newHistory.shift();
+    }
+    
+    set({
+      history: newHistory,
+      historyIndex: newHistory.length - 1,
+    });
+  },
+
+  // Undo
+  undo: () => {
+    const { history, historyIndex } = get();
+    if (historyIndex <= 0) return;
+    
+    const newIndex = historyIndex - 1;
+    const state = history[newIndex];
+    
+    set({
+      nodes: JSON.parse(JSON.stringify(state.nodes)),
+      edges: JSON.parse(JSON.stringify(state.edges)),
+      historyIndex: newIndex,
+      selectedNodeId: null,
+      selectedEdgeId: null,
+    });
+  },
+
+  // Redo
+  redo: () => {
+    const { history, historyIndex } = get();
+    if (historyIndex >= history.length - 1) return;
+    
+    const newIndex = historyIndex + 1;
+    const state = history[newIndex];
+    
+    set({
+      nodes: JSON.parse(JSON.stringify(state.nodes)),
+      edges: JSON.parse(JSON.stringify(state.edges)),
+      historyIndex: newIndex,
+      selectedNodeId: null,
+      selectedEdgeId: null,
+    });
+  },
+
+  canUndo: () => {
+    const { historyIndex } = get();
+    return historyIndex > 0;
+  },
+
+  canRedo: () => {
+    const { history, historyIndex } = get();
+    return historyIndex < history.length - 1;
+  },
+
+  // Copy selected nodes
+  copySelected: () => {
+    const { nodes, edges, selectedNodeId } = get();
+    if (!selectedNodeId) return;
+    
+    // Get selected node
+    const selectedNode = nodes.find(n => n.id === selectedNodeId);
+    if (!selectedNode) return;
+    
+    // For now, copy single node (could extend to multiple selection)
+    const nodesToCopy = [selectedNode];
+    const nodeIds = new Set(nodesToCopy.map(n => n.id));
+    
+    // Copy edges between copied nodes
+    const edgesToCopy = edges.filter(
+      e => nodeIds.has(e.source) && nodeIds.has(e.target)
+    );
+    
+    set({
+      clipboard: {
+        nodes: JSON.parse(JSON.stringify(nodesToCopy)),
+        edges: JSON.parse(JSON.stringify(edgesToCopy)),
+      }
+    });
+  },
+
+  // Paste from clipboard
+  paste: () => {
+    const { clipboard } = get();
+    if (!clipboard || clipboard.nodes.length === 0) return;
+    
+    // Push history before pasting
+    get().pushHistory();
+    
+    // Create new IDs for pasted nodes
+    const idMap = new Map<string, string>();
+    const newNodes: Node<NodeData>[] = clipboard.nodes.map(node => {
+      const newId = `node_${nodeIdCounter++}`;
+      idMap.set(node.id, newId);
+      
+      return {
+        ...node,
+        id: newId,
+        position: {
+          x: node.position.x + 50,
+          y: node.position.y + 50,
+        },
+        data: {
+          ...node.data,
+          label: `${node.data.label} (copy)`,
+        },
+        selected: true,
+      };
+    });
+    
+    // Update edge references
+    const newEdges: Edge<EdgeData>[] = clipboard.edges.map(edge => ({
+      ...edge,
+      id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      source: idMap.get(edge.source) || edge.source,
+      target: idMap.get(edge.target) || edge.target,
+    }));
+    
+    set((state) => ({
+      nodes: [...state.nodes.map(n => ({ ...n, selected: false })), ...newNodes],
+      edges: [...state.edges, ...newEdges],
+      selectedNodeId: newNodes[0]?.id || null,
+    }));
   },
 }));

@@ -16,10 +16,10 @@ Ultimo aggiornamento: 27 Dicembre 2025
 | Feature | Descrizione | Stato |
 |---------|-------------|-------|
 | **Edge labels** | Mostrare flow rate sulle connessioni | ✅ Completato |
-| **Undo/Redo** | Annulla operazioni | ❌ Da fare |
-| **Copia/Incolla nodi** | Duplicare nodi | ❌ Da fare |
+| **Undo/Redo** | Annulla operazioni | ✅ Completato |
+| **Copia/Incolla nodi** | Duplicare nodi | ✅ Completato |
 | **Scenari predefiniti** | Esempi: loot system, energy system | ❌ Da fare |
-| **Velocità simulazione** | Slider per tick/secondo | ❌ Da fare |
+| **Velocità simulazione** | Slider per tick/secondo | ✅ Completato |
 
 ## 🟢 Priorità Bassa (Nice to have)
 
@@ -39,6 +39,13 @@ Ultimo aggiornamento: 27 Dicembre 2025
 - ❌ Da fare
 
 ## 📝 Note di Sviluppo
+
+### v0.4.0 (27/12/2025)
+- ✅ Undo/Redo con history (Ctrl+Z / Ctrl+Y)
+- ✅ Copy/Paste nodi (Ctrl+C / Ctrl+V)
+- ✅ Velocità simulazione regolabile (0.1x - 5x)
+- ✅ Slider nella toolbar per regolare tick/secondo
+- ✅ Pulsanti ↩️↪️📋📄 nella toolbar
 
 ### v0.3.0 (27/12/2025)
 - ✅ Converter funzionante con input/output ratio configurabile

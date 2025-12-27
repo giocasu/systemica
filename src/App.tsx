@@ -35,6 +35,11 @@ function Flow() {
     deleteSelectedEdge,
     isRunning,
     tick,
+    ticksPerSecond,
+    undo,
+    redo,
+    copySelected,
+    paste,
   } = useSimulatorStore();
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -43,11 +48,40 @@ function Flow() {
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Don't delete if user is typing in an input
+      // Don't handle if user is typing in an input
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
         return;
       }
       
+      // Undo: Ctrl+Z
+      if (event.ctrlKey && event.key === 'z') {
+        event.preventDefault();
+        undo();
+        return;
+      }
+      
+      // Redo: Ctrl+Y or Ctrl+Shift+Z
+      if (event.ctrlKey && (event.key === 'y' || (event.shiftKey && event.key === 'Z'))) {
+        event.preventDefault();
+        redo();
+        return;
+      }
+      
+      // Copy: Ctrl+C
+      if (event.ctrlKey && event.key === 'c') {
+        event.preventDefault();
+        copySelected();
+        return;
+      }
+      
+      // Paste: Ctrl+V
+      if (event.ctrlKey && event.key === 'v') {
+        event.preventDefault();
+        paste();
+        return;
+      }
+      
+      // Delete
       if (event.key === 'Delete' || event.key === 'Backspace') {
         if (selectedNodeId) {
           deleteSelectedNode();
@@ -59,7 +93,7 @@ function Flow() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodeId, selectedEdgeId, deleteSelectedNode, deleteSelectedEdge]);
+  }, [selectedNodeId, selectedEdgeId, deleteSelectedNode, deleteSelectedEdge, undo, redo, copySelected, paste]);
 
   // Handle node selection
   const onNodeClick = useCallback((_: React.MouseEvent, node: { id: string }) => {
@@ -105,10 +139,10 @@ function Flow() {
 
     const interval = setInterval(() => {
       tick();
-    }, 1000);
+    }, 1000 / ticksPerSecond);
 
     return () => clearInterval(interval);
-  }, [isRunning, tick]);
+  }, [isRunning, tick, ticksPerSecond]);
 
   return (
     <div className="app">

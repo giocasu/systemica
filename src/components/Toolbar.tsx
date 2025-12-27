@@ -3,7 +3,24 @@ import { useSimulatorStore } from '../store/simulatorStore';
 import { NodeType, nodeConfig } from '../types';
 
 export function Toolbar() {
-  const { isRunning, toggleRunning, step, reset, exportToFile, importFromFile } = useSimulatorStore();
+  const { 
+    isRunning, 
+    toggleRunning, 
+    step, 
+    reset, 
+    exportToFile, 
+    importFromFile,
+    ticksPerSecond,
+    setTicksPerSecond,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    copySelected,
+    paste,
+    selectedNodeId,
+    clipboard,
+  } = useSimulatorStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const onDragStart = (event: React.DragEvent, nodeType: NodeType) => {
@@ -46,6 +63,28 @@ export function Toolbar() {
         </button>
         <button onClick={step}>⏭️ Step</button>
         <button onClick={reset}>🔄 Reset</button>
+        <div className="speed-control">
+          <span>🏃</span>
+          <input
+            type="range"
+            min="0.1"
+            max="5"
+            step="0.1"
+            value={ticksPerSecond}
+            onChange={(e) => setTicksPerSecond(parseFloat(e.target.value))}
+            title={`Speed: ${ticksPerSecond.toFixed(1)} tick/s`}
+          />
+          <span className="speed-value">{ticksPerSecond.toFixed(1)}x</span>
+        </div>
+      </div>
+
+      <span className="separator">|</span>
+
+      <div className="controls">
+        <button onClick={undo} disabled={!canUndo()} title="Undo (Ctrl+Z)">↩️</button>
+        <button onClick={redo} disabled={!canRedo()} title="Redo (Ctrl+Y)">↪️</button>
+        <button onClick={copySelected} disabled={!selectedNodeId} title="Copy (Ctrl+C)">📋</button>
+        <button onClick={paste} disabled={!clipboard} title="Paste (Ctrl+V)">📄</button>
       </div>
 
       <span className="separator">|</span>

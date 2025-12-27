@@ -90,6 +90,38 @@ body {
   box-shadow: 0 0 10px #e94560;
 }
 
+.controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.controls button:disabled:hover {
+  background: #0f3460;
+  border-color: #0f3460;
+}
+
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #0f3460;
+  border-radius: 4px;
+}
+
+.speed-control input[type="range"] {
+  width: 80px;
+  height: 4px;
+  accent-color: #e94560;
+}
+
+.speed-control .speed-value {
+  font-size: 0.75rem;
+  min-width: 32px;
+  color: #e94560;
+  font-weight: bold;
+}
+
 .separator {
   color: #444;
   margin: 0 5px;
