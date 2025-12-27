@@ -11,6 +11,7 @@ import {
 } from '@xyflow/react';
 import { NodeData, NodeType, nodeDefaults } from '../types';
 import { getTemplateById } from '../templates';
+import { evaluateFormula } from '../utils/formulaEvaluator';
 
 // Edge data type
 export interface EdgeData {
@@ -190,6 +191,8 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         probability: defaults.probability ?? 100,
         gateCondition: defaults.gateCondition ?? 'always',
         gateThreshold: defaults.gateThreshold ?? 0,
+        formula: defaults.formula ?? '',
+        useFormula: defaults.useFormula ?? false,
       },
     };
 
@@ -264,7 +267,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   },
 
   tick: () => {
-    const { nodes, edges } = get();
+    const { nodes, edges, currentTick } = get();
     
     // Create a map for quick lookup
     const nodeMap = new Map(nodes.map((n) => [n.id, { ...n, data: { ...n.data } }]));
@@ -273,13 +276,27 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     const checkProbability = (prob: number): boolean => {
       return Math.random() * 100 < prob;
     };
+    
+    // Helper function to get production rate (uses formula if enabled)
+    const getProductionRate = (node: Node<NodeData>): number => {
+      if (node.data.useFormula && node.data.formula) {
+        const result = evaluateFormula(node.data.formula, {
+          resources: node.data.resources,
+          tick: currentTick,
+          capacity: node.data.capacity,
+        });
+        return result ?? node.data.productionRate;
+      }
+      return node.data.productionRate;
+    };
 
     // Phase 1: Sources produce resources (with probability check)
     for (const node of nodeMap.values()) {
       if (node.data.nodeType === 'source' && node.data.isActive) {
         const prob = node.data.probability ?? 100;
         if (checkProbability(prob)) {
-          node.data.resources += node.data.productionRate;
+          const production = getProductionRate(node);
+          node.data.resources += production;
         }
       }
     }

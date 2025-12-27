@@ -30,7 +30,7 @@ Ultimo aggiornamento: 27 Dicembre 2025
 | **Gate condizionali** | If/else sul flusso | ✅ Completato |
 | **Random/Probability** | Nodi probabilistici | ✅ Completato |
 | **Export statistiche** | CSV/report della simulazione | ✅ Completato |
-| **Formule custom** | Espressioni per production rate | ❌ Da fare |
+| **Formule custom** | Espressioni per production rate | ✅ Completato |
 
 ## 📋 Legenda
 
@@ -39,6 +39,14 @@ Ultimo aggiornamento: 27 Dicembre 2025
 - ❌ Da fare
 
 ## 📝 Note di Sviluppo
+
+### v0.8.0 (27/12/2025)
+- ✅ Formule custom per production rate
+- ✅ Variabili: resources, tick, capacity
+- ✅ Funzioni: min, max, floor, ceil, round, random, sin, cos, pow, sqrt
+- ✅ Validazione formule in tempo reale
+- ✅ Help contestuale per sintassi
+- ✅ Mostrato tipo nodo nel pannello proprietà
 
 ### v0.7.0 (27/12/2025)
 - ✅ Gate condizionali (always/if_above/if_below + threshold)

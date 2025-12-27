@@ -18,6 +18,9 @@ export interface NodeData extends Record<string, unknown> {
   // Gate specific - condition for flow
   gateCondition: 'always' | 'if_above' | 'if_below';
   gateThreshold: number;    // threshold for condition
+  // Custom formula for production (overrides productionRate if set)
+  formula: string;          // e.g., "resources * 0.1" or "10 + tick * 0.5"
+  useFormula: boolean;      // whether to use formula instead of fixed rate
 }
 
 // Default values for each node type
@@ -31,6 +34,8 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     inputRatio: 1,
     outputRatio: 1,
     probability: 100,
+    formula: '',
+    useFormula: false,
   },
   pool: {
     resources: 10,
@@ -41,6 +46,8 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     inputRatio: 1,
     outputRatio: 1,
     probability: 100,
+    formula: '',
+    useFormula: false,
   },
   drain: {
     resources: 0,
@@ -51,6 +58,8 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     inputRatio: 1,
     outputRatio: 1,
     probability: 100,
+    formula: '',
+    useFormula: false,
   },
   converter: {
     resources: 0,
@@ -61,6 +70,8 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     inputRatio: 2,          // requires 2 input
     outputRatio: 1,         // produces 1 output
     probability: 100,
+    formula: '',
+    useFormula: false,
   },
   gate: {
     resources: 0,
@@ -73,6 +84,8 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     probability: 100,
     gateCondition: 'always',
     gateThreshold: 0,
+    formula: '',
+    useFormula: false,
   },
 };
 

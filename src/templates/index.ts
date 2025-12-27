@@ -29,6 +29,8 @@ const createNodeData = (
   probability: 100,
   gateCondition: 'always',
   gateThreshold: 0,
+  formula: '',
+  useFormula: false,
   ...overrides,
 });
 

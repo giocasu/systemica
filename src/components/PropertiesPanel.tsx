@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useSimulatorStore } from '../store/simulatorStore';
 import { NodeData, nodeConfig } from '../types';
+import { validateFormula } from '../utils/formulaEvaluator';
 
 interface PropertiesPanelProps {
   nodeId: string;
@@ -8,6 +10,7 @@ interface PropertiesPanelProps {
 export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
   const { nodes, updateNodeData } = useSimulatorStore();
   const node = nodes.find((n) => n.id === nodeId);
+  const [formulaError, setFormulaError] = useState<string | null>(null);
 
   if (!node) return null;
 
@@ -65,8 +68,42 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
             type="number"
             value={data.productionRate}
             min={0}
+            disabled={data.useFormula}
             onChange={(e) => handleChange('productionRate', parseInt(e.target.value) || 0)}
           />
+        </div>
+      )}
+
+      {data.nodeType === 'source' && (
+        <div className="property-group formula-section">
+          <label>
+            <input
+              type="checkbox"
+              checked={data.useFormula ?? false}
+              onChange={(e) => handleChange('useFormula', e.target.checked)}
+            />
+            Use Formula
+          </label>
+          {data.useFormula && (
+            <>
+              <input
+                type="text"
+                value={data.formula ?? ''}
+                placeholder="e.g., resources * 0.1"
+                className={formulaError ? 'error' : ''}
+                onChange={(e) => {
+                  const formula = e.target.value;
+                  handleChange('formula', formula);
+                  setFormulaError(validateFormula(formula));
+                }}
+              />
+              {formulaError && <span className="formula-error">{formulaError}</span>}
+              <div className="formula-help">
+                <small>Variables: resources, tick, capacity</small>
+                <small>Functions: min, max, floor, ceil, round, random</small>
+              </div>
+            </>
+          )}
         </div>
       )}
 
