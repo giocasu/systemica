@@ -1,152 +1,452 @@
-# Game Economy Simulator
+# 🎮 Game Economy Simulator - Manuale d'Uso
 
 Un simulatore visuale di economie di gioco ispirato a **Machinations**, progettato per modellare e testare sistemi Producer-Consumer nei videogiochi.
 
-## 📋 Panoramica
+---
 
-Questo tool permette di creare diagrammi interattivi che simulano il flusso di risorse in un sistema di gioco, utilizzando il pattern **Producer-Consumer**. È ideale per game designer che vogliono prototipare e bilanciare meccaniche economiche.
+## 📋 Indice
 
-## 🎮 Casi d'Uso nel Game Development
+1. [Introduzione](#-introduzione)
+2. [Avvio Rapido](#-avvio-rapido)
+3. [Interfaccia](#-interfaccia)
+4. [Tipi di Nodo](#-tipi-di-nodo)
+5. [Connessioni](#-connessioni)
+6. [Simulazione](#-simulazione)
+7. [Proprietà Avanzate](#-proprietà-avanzate)
+8. [Template Predefiniti](#-template-predefiniti)
+9. [Formule Custom](#-formule-custom)
+10. [Salvataggio e Export](#-salvataggio-e-export)
+11. [Scorciatoie da Tastiera](#-scorciatoie-da-tastiera)
+12. [Casi d'Uso](#-casi-duso)
 
-| Scenario | Descrizione |
-|----------|-------------|
-| **Economia in-game** | Simulare flussi di valuta, punti esperienza, risorse |
-| **Bilanciamento** | Testare se il sistema è bilanciato o porta a inflazione/deflazione |
-| **Progression System** | Modellare progressione del giocatore |
-| **Loot System** | Simulare drop rates e accumulo di oggetti |
-| **Energy Systems** | Modellare sistemi energia/stamina (tipici dei mobile games) |
+---
+
+## 🎯 Introduzione
+
+Game Economy Simulator ti permette di creare diagrammi interattivi che simulano il flusso di risorse in un sistema di gioco. È ideale per:
+
+- **Game Designer**: Prototipare meccaniche economiche
+- **Bilanciamento**: Testare equilibrio del sistema
+- **Documentazione**: Visualizzare flussi di risorse
+- **Didattica**: Imparare economia dei giochi
+
+---
+
+## 🚀 Avvio Rapido
+
+### Installazione
+
+```bash
+# Clona il repository
+git clone <url>
+cd prod-cons
+
+# Installa dipendenze
+npm install
+
+# Avvia in modalità sviluppo
+npm run dev
+```
+
+### Primo Diagramma in 30 Secondi
+
+1. **Trascina** un nodo `Source` dalla palette al canvas
+2. **Trascina** un nodo `Pool` accanto ad esso
+3. **Connetti**: clicca sul pallino destro del Source e trascina al pallino sinistro del Pool
+4. **Avvia**: clicca su ▶️ Play
+5. Osserva le risorse fluire!
+
+---
+
+## 🖥️ Interfaccia
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  🎮 Game Economy Simulator    [▶️][⏭️][🔄][🏃⎯⎯●⎯⎯] [↩️][↪️]...   │  ← Toolbar
+├─────────────────────────────────────────────────────────────────┤
+│                                                    ┌──────────┐ │
+│                                                    │Properties│ │
+│              Canvas principale                     │  Panel   │ │
+│              (trascinare nodi qui)                 └──────────┘ │
+│                                                    ┌──────────┐ │
+│                                                    │  Chart   │ │
+│         [Minimap]                                  │          │ │
+└─────────────────────────────────────────────────────────────────┤
+│  Tick: 42   |   Nodes: 5   |   Edges: 4   |   Running ●        │  ← Status Bar
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Toolbar
+
+| Controllo | Descrizione |
+|-----------|-------------|
+| ▶️ Play / ⏸️ Pause | Avvia/ferma simulazione automatica |
+| ⏭️ Step | Esegue un singolo tick |
+| 🔄 Reset | Riporta risorse ai valori iniziali |
+| 🏃 Slider | Velocità simulazione (0.1x - 5x) |
+| ↩️ Undo | Annulla ultima azione (Ctrl+Z) |
+| ↪️ Redo | Ripristina azione (Ctrl+Y) |
+| 📋 Copy | Copia nodo selezionato (Ctrl+C) |
+| 📄 Paste | Incolla nodo (Ctrl+V) |
+| 💾 Save | Salva progetto come JSON |
+| 📂 Load | Carica progetto JSON |
+| 📊 CSV | Esporta statistiche simulazione |
+| 📋 Templates | Carica scenario predefinito |
+
+### Palette Nodi
+
+Trascina i nodi dalla palette sul canvas:
+
+| Icona | Tipo | Funzione |
+|-------|------|----------|
+| ⬆️ | Source | Produce risorse |
+| 🔵 | Pool | Accumula risorse |
+| ⬇️ | Drain | Consuma risorse |
+| 🔄 | Converter | Trasforma risorse |
+| 🚪 | Gate | Controlla flusso |
+
+---
 
 ## 🧩 Tipi di Nodo
 
-### Source (Sorgente) 🟢
+### ⬆️ Source (Sorgente)
+
 Produce risorse automaticamente ad ogni tick.
-- **Uso**: Spawn di nemici, generazione passiva di risorse, reward periodici
-- **Parametri**: `productionRate` (risorse/tick)
 
-### Pool (Accumulo) 🔵
-Accumula risorse con una capacità massima opzionale.
-- **Uso**: Inventario, wallet, barra della vita, mana pool
-- **Parametri**: `resources` (valore attuale), `capacity` (massimo, -1 = illimitato)
+| Proprietà | Descrizione |
+|-----------|-------------|
+| Label | Nome del nodo |
+| Resources | Risorse accumulate |
+| Production Rate | Risorse prodotte per tick |
+| Probability | % di attivazione per tick (0-100) |
+| Use Formula | Usa formula invece di rate fisso |
 
-### Drain (Consumatore) 🔴
-Consuma/elimina risorse dal sistema.
-- **Uso**: Acquisti, costi, danni subiti, consumo energia
-- **Parametri**: Riceve risorse e le rimuove dal sistema
+**Esempi d'uso:**
+- Spawn di nemici
+- Generazione passiva di gold
+- Rigenerazione vita/mana
+- Quest rewards
 
-### Converter (Convertitore) 🟡
-Trasforma risorse di un tipo in un altro.
-- **Uso**: Crafting, upgrade, conversione valuta
-- **Parametri**: Rapporto di conversione input/output
+---
 
-### Gate (Porta) 🟣
-Controlla il flusso condizionalmente.
-- **Uso**: Sblocchi, requisiti, condizioni
+### 🔵 Pool (Accumulo)
+
+Accumula risorse con capacità opzionale.
+
+| Proprietà | Descrizione |
+|-----------|-------------|
+| Label | Nome del nodo |
+| Resources | Risorse attuali |
+| Capacity | Massimo (-1 = illimitato) |
+| Probability | % di trasferimento in uscita |
+
+**Esempi d'uso:**
+- Inventario giocatore
+- Wallet/portafoglio
+- Barra della vita/mana
+- Storage di risorse
+
+---
+
+### ⬇️ Drain (Consumatore)
+
+Consuma e rimuove risorse dal sistema.
+
+| Proprietà | Descrizione |
+|-----------|-------------|
+| Label | Nome del nodo |
+| Resources | Risorse rimosse (contatore) |
+| Probability | % di consumo |
+
+**Esempi d'uso:**
+- Acquisti nel shop
+- Danni subiti
+- Consumo energia per azioni
+- Costi di crafting
+
+---
+
+### 🔄 Converter (Convertitore)
+
+Trasforma risorse in input in risorse in output.
+
+| Proprietà | Descrizione |
+|-----------|-------------|
+| Input Ratio | Risorse richieste |
+| Output Ratio | Risorse prodotte |
+| Resources | Buffer di accumulo |
+
+**Logica:** Quando accumula `inputRatio` risorse, le converte in `outputRatio` e le distribuisce.
+
+**Esempio:** Input 3, Output 1 → Ogni 3 risorse in entrata, produce 1 risorsa in uscita.
+
+**Esempi d'uso:**
+- Crafting (3 legno → 1 tavola)
+- Conversione valuta
+- Upgrade system
+- Fusione oggetti
+
+---
+
+### 🚪 Gate (Porta Condizionale)
+
+Trasferisce risorse solo se una condizione è soddisfatta.
+
+| Proprietà | Descrizione |
+|-----------|-------------|
+| Condition | `always` / `if_above` / `if_below` |
+| Threshold | Soglia per la condizione |
+| Resources | Risorse accumulate |
+
+**Condizioni:**
+- `always`: Sempre aperto (flusso normale)
+- `if_above`: Aperto solo se resources > threshold
+- `if_below`: Aperto solo se resources < threshold
+
+**Esempi d'uso:**
+- Sblocchi a livello di risorse
+- Overflow protection
+- Conditional triggers
+- Gating content
+
+---
 
 ## 🔗 Connessioni
 
-Le connessioni rappresentano il flusso di risorse tra nodi:
-- Ogni connessione ha un **flow rate** (risorse trasferite per tick)
-- Il flusso è animato durante la simulazione
-- Le risorse fluiscono solo se disponibili nel nodo sorgente
+### Creare una Connessione
 
-## 🖱️ Controlli
+1. Clicca sul **pallino destro** (●) del nodo sorgente
+2. Trascina verso il **pallino sinistro** del nodo destinazione
+3. Rilascia per creare la connessione
 
-### Creazione
-| Azione | Come |
-|--------|------|
-| Aggiungere nodo | Trascina dalla palette nell'area di lavoro |
-| Connettere nodi | Trascina dall'handle (●) destro a quello sinistro |
-| Eliminare | Seleziona e premi `Delete` o `Backspace` |
+### Proprietà Connessione
 
-### Navigazione
-| Azione | Come |
-|--------|------|
-| Pan (spostare vista) | Clicca e trascina lo sfondo |
-| Zoom | Rotella mouse o pulsanti controlli |
-| Selezionare | Click sul nodo |
-| Selezione multipla | `Shift` + Click o box selection |
+Clicca su una connessione per aprire il pannello proprietà:
 
-### Simulazione
-| Pulsante | Funzione |
-|----------|----------|
-| ▶️ Play | Avvia simulazione automatica (1 tick/sec) |
-| ⏸️ Pause | Mette in pausa |
-| ⏭️ Step | Esegue un singolo tick |
-| 🔄 Reset | Riporta tutte le risorse ai valori iniziali |
+| Proprietà | Descrizione |
+|-----------|-------------|
+| Flow Rate | Risorse trasferite per tick |
 
-## 🏗️ Architettura
+Il flow rate è visualizzato come etichetta sulla connessione.
 
+### Regole del Flusso
+
+- Le risorse fluiscono **solo se disponibili** nel nodo sorgente
+- Le risorse rispettano la **capacità** del nodo destinazione
+- I **Drain** accettano sempre le risorse (le eliminano)
+- I **Source** producono senza consumare dal proprio pool
+
+---
+
+## ⚡ Simulazione
+
+### Tick
+
+La simulazione procede per **tick** discreti. Ad ogni tick:
+
+1. **Fase 1:** I Source producono risorse (se probability check passa)
+2. **Fase 2:** Le risorse fluiscono attraverso le connessioni
+3. **Fase 3:** I Converter processano le risorse accumulate
+
+### Controlli
+
+| Azione | Risultato |
+|--------|-----------|
+| ▶️ Play | Avvia simulazione continua |
+| ⏸️ Pause | Ferma simulazione |
+| ⏭️ Step | Esegue singolo tick (utile per debug) |
+| 🔄 Reset | Riporta tutto allo stato iniziale |
+
+### Velocità
+
+Usa lo **slider 🏃** per regolare la velocità:
+- **0.1x**: Molto lento (1 tick ogni 10 secondi)
+- **1x**: Normale (1 tick/secondo)
+- **5x**: Veloce (5 tick/secondo)
+
+---
+
+## ⚙️ Proprietà Avanzate
+
+### Probability (Tutti i nodi)
+
+Ogni nodo ha un valore **Probability** (0-100%):
+- Determina la % di attivazione per tick
+- 100% = sempre attivo
+- 50% = attivo circa metà delle volte
+- Utile per simulare eventi casuali, drop rates, ecc.
+
+### Formule Custom (Source)
+
+I nodi Source possono usare formule invece di un rate fisso. Vedi [Formule Custom](#-formule-custom).
+
+---
+
+## 📋 Template Predefiniti
+
+Clicca su **📋 Templates** per caricare scenari pronti:
+
+### 🗡️ Loot System
+Simula drop di loot dai nemici verso l'inventario del giocatore.
+
+### ⚡ Energy Regen
+Sistema di stamina con rigenerazione nel tempo e consumo per azioni.
+
+### 🔨 Crafting
+Sistema di raccolta materiali e crafting di oggetti.
+
+### 💰 Economy Loop
+Ciclo economico: lavoro → guadagno → spesa → shop.
+
+### 🔮 Mana System
+Sistema magico con rigenerazione mana e consumo spell.
+
+---
+
+## 📐 Formule Custom
+
+Per i nodi **Source**, puoi usare formule invece di un rate fisso.
+
+### Attivazione
+
+1. Seleziona un nodo Source
+2. Nel pannello proprietà, abilita **"Use Formula"**
+3. Inserisci la formula
+
+### Variabili Disponibili
+
+| Variabile | Descrizione |
+|-----------|-------------|
+| `resources` | Risorse attuali nel nodo |
+| `tick` | Tick corrente della simulazione |
+| `capacity` | Capacità del nodo |
+
+### Funzioni Disponibili
+
+| Funzione | Descrizione | Esempio |
+|----------|-------------|---------|
+| `min(a, b)` | Minimo | `min(resources, 5)` |
+| `max(a, b)` | Massimo | `max(0, 10 - resources)` |
+| `floor(x)` | Arrotonda giù | `floor(resources / 2)` |
+| `ceil(x)` | Arrotonda su | `ceil(tick * 0.1)` |
+| `round(x)` | Arrotonda | `round(resources * 0.3)` |
+| `random()` | Casuale 0-1 | `random() * 10` |
+| `sqrt(x)` | Radice quadrata | `sqrt(resources)` |
+| `pow(x, y)` | Potenza | `pow(2, tick)` |
+| `sin(x)`, `cos(x)` | Trigonometriche | `5 + sin(tick) * 3` |
+| `abs(x)` | Valore assoluto | `abs(resources - 50)` |
+
+### Esempi di Formule
+
+```javascript
+resources * 0.1          // Produce 10% delle risorse attuali
+10 + tick * 0.5          // Aumenta linearmente nel tempo
+min(resources, 5)        // Produce max 5 per tick
+max(0, 100 - resources)  // Produce di più quando basso
+floor(resources / 10)    // Produzione a scaglioni
+random() * 10            // Casuale 0-10
+5 + sin(tick) * 3        // Oscillazione ciclica (2-8)
+pow(1.1, tick)           // Crescita esponenziale
 ```
-src/
-├── main.tsx              # Entry point React
-├── App.tsx               # Componente principale con React Flow
-├── types.ts              # Tipi TypeScript e configurazioni nodi
-├── styles.css            # Stili globali
-├── store/
-│   └── simulatorStore.ts # State management con Zustand
-├── nodes/
-│   └── index.tsx         # Componenti nodi custom
-└── components/
-    ├── Toolbar.tsx       # Barra strumenti
-    ├── PropertiesPanel.tsx # Pannello proprietà
-    └── StatusBar.tsx     # Barra di stato
-```
+
+---
+
+## 💾 Salvataggio e Export
+
+### Salvare Progetto
+
+1. Clicca **💾 Save**
+2. Inserisci un nome
+3. Il file `.json` viene scaricato
+
+### Caricare Progetto
+
+1. Clicca **📂 Load**
+2. Seleziona un file `.json` precedentemente salvato
+3. Il diagramma viene caricato
+
+### Export Statistiche CSV
+
+1. Esegui la simulazione per alcuni tick
+2. Clicca **📊 CSV**
+3. Scarica un file CSV con i valori delle risorse per ogni tick
+
+Il CSV contiene:
+- Colonna `Tick`: numero del tick
+- Una colonna per ogni nodo con le risorse
+
+Utile per analisi in Excel, Google Sheets, ecc.
+
+---
+
+## ⌨️ Scorciatoie da Tastiera
+
+| Tasto | Azione |
+|-------|--------|
+| `Delete` / `Backspace` | Elimina elemento selezionato |
+| `Ctrl + Z` | Undo (annulla) |
+| `Ctrl + Y` | Redo (ripristina) |
+| `Ctrl + Shift + Z` | Redo (alternativo) |
+| `Ctrl + C` | Copia nodo selezionato |
+| `Ctrl + V` | Incolla nodo |
+
+---
+
+## 🎮 Casi d'Uso
+
+### 1. Bilanciamento Economia
+
+Simula l'economia del tuo gioco per verificare:
+- Il giocatore guadagna troppo/poco?
+- C'è inflazione/deflazione di risorse?
+- Il pacing è corretto?
+
+### 2. Loot Tables
+
+Modella i drop rates:
+- Source con probability per drop rari
+- Converter per upgrade tiers
+
+### 3. Energy/Stamina System
+
+Tipico dei mobile games:
+- Source per rigenerazione
+- Pool per energy cap
+- Drain per costo azioni
+
+### 4. Crafting System
+
+- Multiple Pool per materiali
+- Converter per ricette
+- Gate per sblocchi progressivi
+
+### 5. Combat Damage
+
+- Source per DPS
+- Pool per HP
+- Gate per armor/resistenze
+
+---
 
 ## 🛠️ Tecnologie
 
 | Tecnologia | Uso |
 |------------|-----|
-| **React** | UI framework |
-| **React Flow** | Libreria per diagrammi node-based |
-| **Zustand** | State management leggero |
-| **TypeScript** | Type safety |
-| **Vite** | Build tool e dev server |
-
-## 🚀 Avvio
-
-```bash
-# Installa dipendenze
-npm install
-
-# Avvia dev server
-npm run dev
-
-# Build produzione
-npm run build
-```
-
-## 📊 Esempio: Sistema Loot
-
-```
-┌─────────┐     ┌─────────┐     ┌─────────┐
-│ Monster │────▶│  Loot   │────▶│ Player  │
-│ Spawner │     │  Pool   │     │Inventory│
-│ (Source)│     │ (Pool)  │     │ (Pool)  │
-└─────────┘     └─────────┘     └─────────┘
-     │                               │
-     │                               ▼
-     │                         ┌─────────┐
-     └────────────────────────▶│  Shop   │
-                               │ (Drain) │
-                               └─────────┘
-```
-
-## 🔮 Roadmap
-
-- [ ] Salvataggio/caricamento progetti (JSON)
-- [ ] Flow rate configurabile sulle connessioni
-- [ ] Nodi condizionali (if/else)
-- [ ] Grafici real-time delle risorse
-- [ ] Scenari predefiniti
-- [ ] Export statistiche
-- [ ] Formule personalizzate per production rate
-
-## 📚 Riferimenti
-
-- [Machinations](https://machinations.io/) - Tool originale di ispirazione
-- [Game Mechanics: Advanced Game Design](https://www.amazon.com/Game-Mechanics-Advanced-Design-Voices/dp/0321820274) - Libro di E. Adams e J. Dormans
-- [React Flow](https://reactflow.dev/) - Libreria utilizzata
+| React 18 | UI Framework |
+| React Flow | Diagrammi node-based |
+| Zustand | State management |
+| Recharts | Grafici real-time |
+| TypeScript | Type safety |
+| Vite | Build tool |
 
 ---
 
-*Creato per game designers e sviluppatori che vogliono prototipare sistemi economici di gioco.*
+## 📚 Riferimenti
+
+- [Machinations](https://machinations.io/) - Tool di ispirazione
+- [Game Mechanics: Advanced Game Design](https://www.amazon.com/Game-Mechanics-Advanced-Design-Voices/dp/0321820274) - Libro di E. Adams e J. Dormans
+- [React Flow](https://reactflow.dev/) - Libreria per diagrammi
+
+---
+
+*Game Economy Simulator v0.8.0 - Creato per game designers e sviluppatori*
