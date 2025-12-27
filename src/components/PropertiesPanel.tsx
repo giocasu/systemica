@@ -12,7 +12,9 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
   const { nodes, updateNodeData } = useSimulatorStore();
   const node = nodes.find((n) => n.id === nodeId);
   const [formulaError, setFormulaError] = useState<string | null>(null);
+  const [formulaValid, setFormulaValid] = useState<boolean>(false);
   const [scriptError, setScriptError] = useState<string | null>(null);
+  const [scriptValid, setScriptValid] = useState<boolean>(false);
   const [validatingScript, setValidatingScript] = useState(false);
 
   if (!node) return null;
@@ -34,18 +36,6 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
     handleChange('processingMode', mode);
     // Also update legacy flag for backwards compatibility
     handleChange('useFormula', mode === 'formula');
-  };
-  
-  const handleScriptChange = async (script: string) => {
-    handleChange('script', script);
-    if (script.trim()) {
-      setValidatingScript(true);
-      const error = await validateScript(script);
-      setScriptError(error);
-      setValidatingScript(false);
-    } else {
-      setScriptError(null);
-    }
   };
 
   return (
@@ -165,15 +155,28 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
             type="text"
             value={data.formula ?? ''}
             placeholder={data.nodeType === 'converter' ? "e.g., floor(input * 0.5)" : "e.g., resources * 0.1"}
-            className={formulaError ? 'error' : ''}
+            className={formulaError ? 'error' : formulaValid ? 'valid' : ''}
             onChange={(e) => {
               const formula = e.target.value;
               handleChange('formula', formula);
-              setFormulaError(validateFormula(formula));
+              setFormulaError(null);
+              setFormulaValid(false);
             }}
           />
-          {formulaError && <span className="formula-error">{formulaError}</span>}
+          <button 
+            className="validate-btn"
+            onClick={() => {
+              const error = validateFormula(data.formula ?? '');
+              setFormulaError(error);
+              setFormulaValid(!error && !!data.formula);
+            }}
+          >
+            ✓ Validate
+          </button>
+          {formulaError && <span className="formula-error">❌ {formulaError}</span>}
+          {formulaValid && <span className="formula-valid">✅ Formula valid!</span>}
           <div className="formula-help">
+            <small>⚠️ Only expressions, NO "return" or ";"</small>
             <small>Variables: {data.nodeType === 'converter' ? 'input, ' : ''}resources, tick, capacity</small>
             <small>Functions: min, max, floor, ceil, round, random, sqrt, pow</small>
           </div>
@@ -187,12 +190,31 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
           <textarea
             value={data.script ?? ''}
             placeholder={`// Return a number\n${data.nodeType === 'converter' ? 'return floor(input * 0.5);' : 'return resources * 0.1;'}`}
-            className={scriptError ? 'error' : ''}
+            className={scriptError ? 'error' : scriptValid ? 'valid' : ''}
             rows={8}
-            onChange={(e) => handleScriptChange(e.target.value)}
+            onChange={(e) => {
+              handleChange('script', e.target.value);
+              setScriptError(null);
+              setScriptValid(false);
+            }}
           />
-          {validatingScript && <span className="script-validating">Validating...</span>}
-          {scriptError && <span className="script-error">{scriptError}</span>}
+          <button 
+            className="validate-btn"
+            disabled={validatingScript}
+            onClick={async () => {
+              const script = data.script ?? '';
+              if (!script.trim()) return;
+              setValidatingScript(true);
+              const error = await validateScript(script);
+              setScriptError(error);
+              setScriptValid(!error);
+              setValidatingScript(false);
+            }}
+          >
+            {validatingScript ? '⏳ Validating...' : '✓ Validate'}
+          </button>
+          {scriptError && <span className="script-error">❌ {scriptError}</span>}
+          {scriptValid && <span className="script-valid">✅ Script valid!</span>}
           <div className="script-help">
             <details>
               <summary>📖 Script API Reference</summary>

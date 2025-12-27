@@ -349,10 +349,36 @@ body {
   border-color: #ef4444;
 }
 
+.formula-section input.valid {
+  border-color: #22c55e;
+}
+
 .formula-error {
   color: #ef4444;
   font-size: 0.75rem;
   margin-top: 4px;
+}
+
+.formula-valid {
+  color: #22c55e;
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+
+.validate-btn {
+  margin-top: 6px;
+  padding: 6px 12px;
+  background: #0f3460;
+  border: 1px solid #e94560;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.validate-btn:hover {
+  background: #e94560;
 }
 
 .formula-help {
@@ -424,6 +450,10 @@ body {
   border-color: #ef4444;
 }
 
+.script-section textarea.valid {
+  border-color: #22c55e;
+}
+
 .script-validating {
   color: #888;
   font-size: 0.75rem;
@@ -432,6 +462,13 @@ body {
 
 .script-error {
   color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 4px;
+  display: block;
+}
+
+.script-valid {
+  color: #22c55e;
   font-size: 0.75rem;
   margin-top: 4px;
   display: block;
