@@ -1,0 +1,346 @@
+import { create } from 'zustand';
+import {
+  Node,
+  Edge,
+  Connection,
+  applyNodeChanges,
+  applyEdgeChanges,
+  addEdge,
+  NodeChange,
+  EdgeChange,
+} from '@xyflow/react';
+import { NodeData, NodeType, nodeDefaults } from '../types';
+
+// Edge data type
+export interface EdgeData {
+  flowRate: number;
+  [key: string]: unknown;
+}
+
+// Project save format
+export interface ProjectData {
+  version: string;
+  name: string;
+  nodes: Node<NodeData>[];
+  edges: Edge<EdgeData>[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface SimulatorState {
+  nodes: Node<NodeData>[];
+  edges: Edge<EdgeData>[];
+  selectedNodeId: string | null;
+  selectedEdgeId: string | null;
+  isRunning: boolean;
+  currentTick: number;
+  
+  // Actions
+  onNodesChange: (changes: NodeChange<Node<NodeData>>[]) => void;
+  onEdgesChange: (changes: EdgeChange<Edge<EdgeData>>[]) => void;
+  onConnect: (connection: Connection) => void;
+  addNode: (type: NodeType, position: { x: number; y: number }) => void;
+  updateNodeData: (nodeId: string, data: Partial<NodeData>) => void;
+  updateEdgeData: (edgeId: string, data: Partial<EdgeData>) => void;
+  setSelectedNode: (nodeId: string | null) => void;
+  setSelectedEdge: (edgeId: string | null) => void;
+  deleteSelectedNode: () => void;
+  deleteSelectedEdge: () => void;
+  toggleRunning: () => void;
+  tick: () => void;
+  step: () => void;
+  reset: () => void;
+  
+  // Save/Load
+  saveProject: (name: string) => ProjectData;
+  loadProject: (data: ProjectData) => void;
+  exportToFile: (name: string) => void;
+  importFromFile: (file: File) => Promise<void>;
+}
+
+let nodeIdCounter = 1;
+
+export const useSimulatorStore = create<SimulatorState>((set, get) => ({
+  nodes: [],
+  edges: [],
+  selectedNodeId: null,
+  selectedEdgeId: null,
+  isRunning: false,
+  currentTick: 0,
+
+  onNodesChange: (changes) => {
+    set((state) => ({
+      nodes: applyNodeChanges(changes, state.nodes),
+    }));
+  },
+
+  onEdgesChange: (changes) => {
+    set((state) => ({
+      edges: applyEdgeChanges(changes, state.edges),
+    }));
+  },
+
+  onConnect: (connection) => {
+    set((state) => ({
+      edges: addEdge(
+        {
+          ...connection,
+          type: 'smoothstep',
+          animated: true,
+          style: { stroke: '#e94560', strokeWidth: 2 },
+          data: { flowRate: 1 },
+          label: '1',
+          labelStyle: { fill: '#fff', fontWeight: 700 },
+          labelBgStyle: { fill: '#e94560', fillOpacity: 0.8 },
+          labelBgPadding: [4, 2] as [number, number],
+          labelBgBorderRadius: 4,
+        },
+        state.edges
+      ),
+    }));
+  },
+
+  addNode: (type, position) => {
+    const id = `node_${nodeIdCounter++}`;
+    const defaults = nodeDefaults[type];
+    
+    const newNode: Node<NodeData> = {
+      id,
+      type,
+      position,
+      data: {
+        label: `${type.charAt(0).toUpperCase() + type.slice(1)} ${nodeIdCounter - 1}`,
+        nodeType: type,
+        resources: defaults.resources ?? 0,
+        capacity: defaults.capacity ?? -1,
+        productionRate: defaults.productionRate ?? 0,
+        consumptionRate: defaults.consumptionRate ?? 0,
+        isActive: defaults.isActive ?? true,
+      },
+    };
+
+    set((state) => ({
+      nodes: [...state.nodes, newNode],
+    }));
+  },
+
+  updateNodeData: (nodeId, data) => {
+    set((state) => ({
+      nodes: state.nodes.map((node) =>
+        node.id === nodeId
+          ? { ...node, data: { ...node.data, ...data } }
+          : node
+      ),
+    }));
+  },
+
+  updateEdgeData: (edgeId, data) => {
+    set((state) => ({
+      edges: state.edges.map((edge): Edge<EdgeData> =>
+        edge.id === edgeId
+          ? { 
+              ...edge, 
+              data: { 
+                ...edge.data, 
+                flowRate: data.flowRate ?? edge.data?.flowRate ?? 1,
+              },
+              label: (data.flowRate ?? edge.data?.flowRate ?? 1).toString(),
+            }
+          : edge
+      ),
+    }));
+  },
+
+  setSelectedNode: (nodeId) => {
+    set({ selectedNodeId: nodeId, selectedEdgeId: null });
+  },
+
+  setSelectedEdge: (edgeId) => {
+    set({ selectedEdgeId: edgeId, selectedNodeId: null });
+  },
+
+  deleteSelectedNode: () => {
+    const { selectedNodeId, nodes, edges } = get();
+    if (!selectedNodeId) return;
+    
+    // Remove node and all connected edges
+    set({
+      nodes: nodes.filter((n) => n.id !== selectedNodeId),
+      edges: edges.filter((e) => e.source !== selectedNodeId && e.target !== selectedNodeId),
+      selectedNodeId: null,
+    });
+  },
+
+  deleteSelectedEdge: () => {
+    const { selectedEdgeId, edges } = get();
+    if (!selectedEdgeId) return;
+    
+    set({
+      edges: edges.filter((e) => e.id !== selectedEdgeId),
+      selectedEdgeId: null,
+    });
+  },
+
+  toggleRunning: () => {
+    set((state) => ({ isRunning: !state.isRunning }));
+  },
+
+  tick: () => {
+    const { nodes, edges } = get();
+    
+    // Create a map for quick lookup
+    const nodeMap = new Map(nodes.map((n) => [n.id, { ...n, data: { ...n.data } }]));
+
+    // Phase 1: Sources produce resources
+    for (const node of nodeMap.values()) {
+      if (node.data.nodeType === 'source' && node.data.isActive) {
+        node.data.resources += node.data.productionRate;
+      }
+    }
+
+    // Phase 2: Process edges (transfer resources)
+    for (const edge of edges) {
+      const source = nodeMap.get(edge.source);
+      const target = nodeMap.get(edge.target);
+
+      if (!source || !target || !source.data.isActive) continue;
+
+      const flowRate = (edge.data as { flowRate?: number })?.flowRate ?? 1;
+
+      // Calculate how much can flow
+      let available: number;
+      if (source.data.nodeType === 'source') {
+        available = flowRate; // Sources always produce
+      } else {
+        available = Math.min(source.data.resources, flowRate);
+      }
+
+      // Check target capacity
+      let targetSpace: number;
+      if (target.data.nodeType === 'drain') {
+        targetSpace = available; // Drains accept everything
+      } else if (target.data.capacity === -1) {
+        targetSpace = available;
+      } else {
+        targetSpace = Math.max(0, target.data.capacity - target.data.resources);
+      }
+
+      const actualFlow = Math.min(available, targetSpace);
+
+      if (actualFlow > 0) {
+        // Remove from source (except for source nodes)
+        if (source.data.nodeType !== 'source') {
+          source.data.resources -= actualFlow;
+        }
+        
+        // Add to target (except for drain nodes)
+        if (target.data.nodeType !== 'drain') {
+          target.data.resources += actualFlow;
+        }
+      }
+    }
+
+    // Update state
+    set({
+      nodes: Array.from(nodeMap.values()),
+      currentTick: get().currentTick + 1,
+    });
+  },
+
+  step: () => {
+    get().tick();
+  },
+
+  reset: () => {
+    const { nodes } = get();
+    
+    set({
+      nodes: nodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          resources: nodeDefaults[node.data.nodeType].resources ?? 0,
+        },
+      })),
+      currentTick: 0,
+      isRunning: false,
+    });
+  },
+
+  // Save project to JSON object
+  saveProject: (name: string): ProjectData => {
+    const { nodes, edges } = get();
+    const now = new Date().toISOString();
+    
+    return {
+      version: '1.0.0',
+      name,
+      nodes,
+      edges,
+      createdAt: now,
+      updatedAt: now,
+    };
+  },
+
+  // Load project from JSON object
+  loadProject: (data: ProjectData) => {
+    // Reset counter based on loaded nodes
+    const maxId = data.nodes.reduce((max, node) => {
+      const match = node.id.match(/node_(\d+)/);
+      return match ? Math.max(max, parseInt(match[1])) : max;
+    }, 0);
+    nodeIdCounter = maxId + 1;
+
+    set({
+      nodes: data.nodes,
+      edges: data.edges,
+      selectedNodeId: null,
+      selectedEdgeId: null,
+      isRunning: false,
+      currentTick: 0,
+    });
+  },
+
+  // Export to file (download)
+  exportToFile: (name: string) => {
+    const project = get().saveProject(name);
+    const json = JSON.stringify(project, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${name.replace(/\s+/g, '_').toLowerCase()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  },
+
+  // Import from file
+  importFromFile: async (file: File): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const json = e.target?.result as string;
+          const data = JSON.parse(json) as ProjectData;
+          
+          // Validate basic structure
+          if (!data.version || !data.nodes || !data.edges) {
+            throw new Error('Invalid project file format');
+          }
+          
+          get().loadProject(data);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      };
+      
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsText(file);
+    });
+  },
+}));
