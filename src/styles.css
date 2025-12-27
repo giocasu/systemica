@@ -761,6 +761,17 @@ body {
   color: #000;
 }
 
+.node-source.exhausted {
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+  color: #fff;
+  opacity: 0.8;
+}
+
+.node-source .exhausted-label {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
 .node-pool {
   background: linear-gradient(135deg, #60a5fa, #3b82f6);
   color: #fff;

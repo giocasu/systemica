@@ -4,6 +4,11 @@ export type NodeType = 'source' | 'pool' | 'drain' | 'converter' | 'gate';
 // Processing mode: fixed rate, formula expression, or full script
 export type ProcessingMode = 'fixed' | 'formula' | 'script';
 
+// Distribution mode: how resources are distributed to multiple outputs
+// continuous: divisible resources (water, energy) - split equally
+// discrete: atomic resources (items, cards) - round robin
+export type DistributionMode = 'continuous' | 'discrete';
+
 // Node data stored in React Flow nodes
 export interface NodeData extends Record<string, unknown> {
   label: string;
@@ -30,6 +35,14 @@ export interface NodeData extends Record<string, unknown> {
   script: string;           // Full JS code with access to getNode(), state, etc.
   // Persistent state for scripts (survives between ticks)
   scriptState: Record<string, unknown>;
+  // Distribution mode for sources: continuous (divisible) or discrete (atomic)
+  distributionMode: DistributionMode;
+  // Index for round-robin distribution (discrete mode)
+  lastDistributionIndex: number;
+  // Source: max total production (-1 = infinite)
+  maxProduction: number;
+  // Source: counter of total produced
+  totalProduced: number;
 }
 
 // Default values for each node type
@@ -48,9 +61,13 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     useFormula: false,
     script: '',
     scriptState: {},
+    distributionMode: 'continuous',
+    lastDistributionIndex: 0,
+    maxProduction: -1,
+    totalProduced: 0,
   },
   pool: {
-    resources: 10,
+    resources: 0,
     capacity: 100,
     productionRate: 0,
     consumptionRate: 0,
@@ -63,6 +80,10 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     useFormula: false,
     script: '',
     scriptState: {},
+    distributionMode: 'continuous',
+    lastDistributionIndex: 0,
+    maxProduction: -1,
+    totalProduced: 0,
   },
   drain: {
     resources: 0,
@@ -78,6 +99,10 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     useFormula: false,
     script: '',
     scriptState: {},
+    distributionMode: 'continuous',
+    lastDistributionIndex: 0,
+    maxProduction: -1,
+    totalProduced: 0,
   },
   converter: {
     resources: 0,
@@ -93,6 +118,10 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     useFormula: false,
     script: '',
     scriptState: {},
+    distributionMode: 'continuous',
+    lastDistributionIndex: 0,
+    maxProduction: -1,
+    totalProduced: 0,
   },
   gate: {
     resources: 0,
@@ -110,6 +139,10 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     useFormula: false,
     script: '',
     scriptState: {},
+    distributionMode: 'continuous',
+    lastDistributionIndex: 0,
+    maxProduction: -1,
+    totalProduced: 0,
   },
 };
 

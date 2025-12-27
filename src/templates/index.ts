@@ -34,6 +34,10 @@ const createNodeData = (
   processingMode: 'fixed',
   script: '',
   scriptState: {},
+  distributionMode: 'continuous',
+  lastDistributionIndex: 0,
+  maxProduction: -1,
+  totalProduced: 0,
   ...overrides,
 });
 

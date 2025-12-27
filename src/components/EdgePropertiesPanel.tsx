@@ -26,8 +26,8 @@ export function EdgePropertiesPanel({ edgeId }: EdgePropertiesPanelProps) {
           type="number"
           value={data.flowRate}
           min={0}
-          step={1}
-          onChange={(e) => handleFlowRateChange(parseInt(e.target.value) || 0)}
+          step={0.1}
+          onChange={(e) => handleFlowRateChange(parseFloat(e.target.value) || 0)}
         />
       </div>
 

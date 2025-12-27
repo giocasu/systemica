@@ -44,11 +44,7 @@ export function ResourceChart() {
   }, [resourceHistory]);
 
   if (resourceHistory.length < 2) {
-    return (
-      <div className="resource-chart empty">
-        <p>📊 Start simulation to see resource chart</p>
-      </div>
-    );
+    return null;
   }
 
   return (

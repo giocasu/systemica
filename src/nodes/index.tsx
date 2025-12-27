@@ -17,13 +17,21 @@ const getMode = (data: NodeData): ProcessingMode => {
   return data.processingMode || (data.useFormula ? 'formula' : 'fixed');
 };
 
+// Helper to format resources with appropriate decimals
+const formatResources = (val: number): string => {
+  if (val === 0) return '0';
+  if (Number.isInteger(val)) return val.toString();
+  // Show up to 2 decimals, but remove trailing zeros
+  return parseFloat(val.toFixed(2)).toString();
+};
+
 // Base node component
 function BaseNode({ data, selected, className }: BaseNodeProps) {
   return (
     <div className={`custom-node ${className} ${selected ? 'selected' : ''}`}>
       <Handle type="target" position={Position.Left} />
       <div className="node-label">{data.label}</div>
-      <div className="node-value">{data.resources}</div>
+      <div className="node-value">{formatResources(data.resources)}</div>
       {data.productionRate > 0 && (
         <div className="node-rate">+{data.productionRate}/tick</div>
       )}
@@ -38,12 +46,19 @@ function BaseNode({ data, selected, className }: BaseNodeProps) {
 // Source Node - produces resources (NO input handle - sources only produce)
 export const SourceNode = memo(({ data, selected }: CustomNodeProps) => {
   const mode = getMode(data);
+  const maxProd = data.maxProduction ?? -1;
+  const totalProduced = data.totalProduced ?? 0;
+  const isExhausted = maxProd !== -1 && totalProduced >= maxProd;
   
   return (
-    <div className={`custom-node node-source ${selected ? 'selected' : ''}`}>
+    <div className={`custom-node node-source ${selected ? 'selected' : ''} ${isExhausted ? 'exhausted' : ''}`}>
       <div className="node-label">{data.label}</div>
-      <div className="node-value">{data.resources}</div>
-      {mode === 'script' ? (
+      <div className="node-value">{formatResources(data.resources)}</div>
+      {isExhausted ? (
+        <div className="node-rate exhausted-label">⛔ exhausted</div>
+      ) : maxProd !== -1 ? (
+        <div className="node-rate">{formatResources(totalProduced)}/{maxProd}</div>
+      ) : mode === 'script' ? (
         <div className="node-rate">📜 script</div>
       ) : mode === 'formula' && data.formula ? (
         <div className="node-rate">📐 f(x)</div>

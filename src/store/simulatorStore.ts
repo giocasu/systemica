@@ -200,6 +200,10 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         processingMode: defaults.processingMode ?? 'fixed',
         script: defaults.script ?? '',
         scriptState: defaults.scriptState ?? {},
+        distributionMode: defaults.distributionMode ?? 'continuous',
+        lastDistributionIndex: defaults.lastDistributionIndex ?? 0,
+        maxProduction: defaults.maxProduction ?? -1,
+        totalProduced: defaults.totalProduced ?? 0,
       },
     };
 
@@ -293,6 +297,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
           resources: node.data.resources,
           tick: currentTick,
           capacity: node.data.capacity,
+          totalProduced: node.data.totalProduced ?? 0,
         });
         return result ?? node.data.productionRate;
       }
@@ -309,28 +314,63 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       return node.data.productionRate;
     };
 
-    // Phase 1: Sources produce resources (with probability check)
+    // Phase 1: Sources produce resources into their buffer (with probability check)
+    // resources = current buffer (like pool)
+    // maxProduction = max total that can ever be produced (-1 = infinite)
+    // totalProduced = counter of total produced so far
+    // Track how much each source produced THIS tick
+    const sourceProductionThisTick = new Map<string, number>();
+    
     for (const node of nodeMap.values()) {
       if (node.data.nodeType === 'source' && node.data.isActive) {
+        const maxProd = node.data.maxProduction ?? -1;
+        const totalProduced = node.data.totalProduced ?? 0;
+        
+        // Check if source is exhausted (max production reached)
+        if (maxProd !== -1 && totalProduced >= maxProd) {
+          sourceProductionThisTick.set(node.id, 0);
+          continue; // Source exhausted, don't produce
+        }
+        
         const prob = node.data.probability ?? 100;
         if (checkProbability(prob)) {
-          const production = getProductionRate(node);
+          let production = getProductionRate(node);
+          
+          // Limit production to not exceed max production
+          if (maxProd !== -1) {
+            const remaining = maxProd - totalProduced;
+            production = Math.min(production, remaining);
+          }
+          
+          // Add to buffer (resources)
           node.data.resources += production;
+          // Track total produced
+          node.data.totalProduced = totalProduced + production;
+          sourceProductionThisTick.set(node.id, production);
+        } else {
+          sourceProductionThisTick.set(node.id, 0);
         }
       }
     }
 
     // Phase 2: Process edges (transfer resources)
+    // Group edges by source node for proper distribution
+    const edgesBySource = new Map<string, Edge<EdgeData>[]>();
     for (const edge of edges) {
-      const source = nodeMap.get(edge.source);
-      const target = nodeMap.get(edge.target);
+      const sourceEdges = edgesBySource.get(edge.source) || [];
+      sourceEdges.push(edge);
+      edgesBySource.set(edge.source, sourceEdges);
+    }
 
-      if (!source || !target || !source.data.isActive) continue;
-      
-      // Check source probability for transfer
+    // Process each source node and distribute to its outputs
+    for (const [sourceId, outgoingEdges] of edgesBySource) {
+      const source = nodeMap.get(sourceId);
+      if (!source || !source.data.isActive) continue;
+
+      // Check source probability for transfer (except sources which always transfer)
       const prob = source.data.probability ?? 100;
       if (!checkProbability(prob) && source.data.nodeType !== 'source') continue;
-      
+
       // Check gate condition if source is a gate
       if (source.data.nodeType === 'gate') {
         const condition = source.data.gateCondition ?? 'always';
@@ -341,38 +381,111 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         if (condition === 'if_below' && resources >= threshold) continue;
       }
 
-      const flowRate = (edge.data as { flowRate?: number })?.flowRate ?? 1;
-
-      // Calculate how much can flow
-      let available: number;
+      // Calculate total available resources from this source
+      let totalAvailable: number;
       if (source.data.nodeType === 'source') {
-        available = flowRate; // Sources always produce
+        // Source: distribute from buffer (resources)
+        totalAvailable = source.data.resources;
       } else {
-        available = Math.min(source.data.resources, flowRate);
+        totalAvailable = source.data.resources;
       }
 
-      // Check target capacity
-      let targetSpace: number;
-      if (target.data.nodeType === 'drain') {
-        targetSpace = available; // Drains accept everything
-      } else if (target.data.capacity === -1) {
-        targetSpace = available;
-      } else {
-        targetSpace = Math.max(0, target.data.capacity - target.data.resources);
-      }
+      if (totalAvailable <= 0) continue;
 
-      const actualFlow = Math.min(available, targetSpace);
-
-      if (actualFlow > 0) {
-        // Remove from source (except for source nodes)
-        if (source.data.nodeType !== 'source') {
-          source.data.resources -= actualFlow;
+      // Get distribution mode (default to continuous for backward compatibility)
+      const distributionMode = source.data.distributionMode ?? 'continuous';
+      
+      // Filter valid targets and calculate flow
+      const validEdges: { edge: Edge<EdgeData>; target: Node<NodeData>; flowRate: number; targetSpace: number }[] = [];
+      
+      for (const edge of outgoingEdges) {
+        const target = nodeMap.get(edge.target);
+        if (!target) continue;
+        
+        const flowRate = (edge.data as { flowRate?: number })?.flowRate ?? 1;
+        
+        // Check target capacity
+        let targetSpace: number;
+        if (target.data.nodeType === 'drain') {
+          targetSpace = Infinity;
+        } else if (target.data.capacity === -1) {
+          targetSpace = Infinity;
+        } else {
+          targetSpace = Math.max(0, target.data.capacity - target.data.resources);
         }
         
-        // Add to target (except for drain nodes)
-        if (target.data.nodeType !== 'drain') {
-          target.data.resources += actualFlow;
+        if (targetSpace > 0) {
+          validEdges.push({ edge, target, flowRate, targetSpace });
         }
+      }
+
+      if (validEdges.length === 0) continue;
+
+      if (distributionMode === 'continuous') {
+        // CONTINUOUS MODE: Split resources equally among all outputs
+        // Each edge gets a fraction of the total, limited by its flowRate
+        const totalFlowRates = validEdges.reduce((sum, e) => sum + e.flowRate, 0);
+        
+        for (const { target, flowRate, targetSpace } of validEdges) {
+          // Proportional distribution based on flowRate
+          const proportion = flowRate / totalFlowRates;
+          const allocated = totalAvailable * proportion;
+          const actualFlow = Math.min(allocated, flowRate, targetSpace);
+          
+          if (actualFlow > 0) {
+            // Remove from source buffer
+            source.data.resources -= actualFlow;
+            
+            // Add to target (except for drain nodes)
+            if (target.data.nodeType !== 'drain') {
+              target.data.resources += actualFlow;
+            }
+          }
+        }
+      } else {
+        // DISCRETE MODE: Round-robin, one resource unit at a time
+        // Send whole units to one target at a time, rotating through targets
+        let lastIndex = source.data.lastDistributionIndex ?? 0;
+        let remaining = Math.floor(totalAvailable); // Only whole units
+        
+        while (remaining > 0 && validEdges.length > 0) {
+          // Find next valid target (round-robin)
+          let found = false;
+          for (let i = 0; i < validEdges.length; i++) {
+            const idx = (lastIndex + i) % validEdges.length;
+            const { target, flowRate, targetSpace } = validEdges[idx];
+            
+            // Can we send at least 1 unit?
+            const canSend = Math.min(1, flowRate, targetSpace);
+            if (canSend >= 1) {
+              // Remove from source buffer
+              source.data.resources -= 1;
+              
+              // Add to target (except for drain nodes)
+              if (target.data.nodeType !== 'drain') {
+                target.data.resources += 1;
+              }
+              
+              remaining -= 1;
+              lastIndex = (idx + 1) % validEdges.length;
+              found = true;
+              
+              // Update targetSpace for next iteration
+              validEdges[idx].targetSpace -= 1;
+              if (validEdges[idx].targetSpace <= 0) {
+                validEdges.splice(idx, 1);
+                if (lastIndex > idx) lastIndex--;
+                if (lastIndex >= validEdges.length) lastIndex = 0;
+              }
+              break;
+            }
+          }
+          
+          if (!found) break; // No valid targets left
+        }
+        
+        // Save last index for next tick
+        source.data.lastDistributionIndex = lastIndex;
       }
     }
 

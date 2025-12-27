@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSimulatorStore } from '../store/simulatorStore';
-import { NodeData, nodeConfig, ProcessingMode } from '../types';
+import { NodeData, nodeConfig, ProcessingMode, DistributionMode } from '../types';
 import { validateFormula } from '../utils/formulaEvaluator';
 import { validateScript } from '../utils/scriptRunner';
 
@@ -56,26 +56,55 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
         />
       </div>
 
+      {/* Resources - buffer for all nodes */}
       <div className="property-group">
-        <label>Resources</label>
+        <label>{data.nodeType === 'source' ? 'Buffer' : 'Resources'}</label>
         <input
           type="number"
           value={data.resources}
           min={0}
-          onChange={(e) => handleChange('resources', parseInt(e.target.value) || 0)}
+          step={0.1}
+          onChange={(e) => handleChange('resources', parseFloat(e.target.value) || 0)}
         />
       </div>
 
-      {data.nodeType === 'pool' && (
+      {/* Capacity for Pool and Source buffer */}
+      {(data.nodeType === 'pool' || data.nodeType === 'source') && (
         <div className="property-group">
-          <label>Capacity (-1 = unlimited)</label>
+          <label>Buffer Capacity (-1 = unlimited)</label>
           <input
             type="number"
             value={data.capacity}
             min={-1}
-            onChange={(e) => handleChange('capacity', parseInt(e.target.value) || -1)}
+            step={1}
+            onChange={(e) => handleChange('capacity', parseFloat(e.target.value) || -1)}
           />
         </div>
+      )}
+
+      {/* Max Production for Source = total that can ever be produced */}
+      {data.nodeType === 'source' && (
+        <>
+          <div className="property-group">
+            <label>Max Total Production (-1 = infinite)</label>
+            <input
+              type="number"
+              value={data.maxProduction}
+              min={-1}
+              step={1}
+              onChange={(e) => handleChange('maxProduction', parseFloat(e.target.value) || -1)}
+            />
+          </div>
+          {data.maxProduction !== -1 && (
+            <div className="property-group info">
+              <span style={{ fontSize: '11px', color: (data.totalProduced ?? 0) >= data.maxProduction ? '#e74c3c' : '#888' }}>
+                {(data.totalProduced ?? 0) >= data.maxProduction 
+                  ? '⛔ Exhausted!' 
+                  : `📊 Produced: ${data.totalProduced ?? 0} / ${data.maxProduction} (${Math.round((data.totalProduced ?? 0) / data.maxProduction * 100)}%)`}
+              </span>
+            </div>
+          )}
+        </>
       )}
 
       {/* Processing Mode Selection for Source and Converter */}
@@ -105,6 +134,36 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
         </div>
       )}
 
+      {/* Distribution Mode for Source (how resources are distributed to multiple outputs) */}
+      {data.nodeType === 'source' && (
+        <div className="property-group">
+          <label>Distribution Mode</label>
+          <div className="mode-selector">
+            <button 
+              className={`mode-btn ${(data.distributionMode ?? 'continuous') === 'continuous' ? 'active' : ''}`}
+              onClick={() => handleChange('distributionMode', 'continuous' as DistributionMode)}
+              title="Divisible resources (water, energy, money) - split equally among outputs"
+            >
+              💧 Continuous
+            </button>
+            <button 
+              className={`mode-btn ${data.distributionMode === 'discrete' ? 'active' : ''}`}
+              onClick={() => handleChange('distributionMode', 'discrete' as DistributionMode)}
+              title="Atomic resources (items, cards, bolts) - round-robin distribution"
+            >
+              🔩 Discrete
+            </button>
+          </div>
+          <div className="property-group info">
+            <span style={{ fontSize: '11px', color: '#888' }}>
+              {(data.distributionMode ?? 'continuous') === 'continuous' 
+                ? '💧 Divisible: 1/tick → 2 outputs = 0.5 each' 
+                : '🔩 Atomic: 1/tick → 2 outputs = alternating 1,0,1,0...'}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Fixed Mode: Show rate or ratio inputs */}
       {supportsProcessingModes && currentMode === 'fixed' && (
         <>
@@ -115,7 +174,8 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
                 type="number"
                 value={data.productionRate}
                 min={0}
-                onChange={(e) => handleChange('productionRate', parseInt(e.target.value) || 0)}
+                step={0.1}
+                onChange={(e) => handleChange('productionRate', parseFloat(e.target.value) || 0)}
               />
             </div>
           )}
@@ -126,8 +186,9 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
                 <input
                   type="number"
                   value={data.inputRatio}
-                  min={1}
-                  onChange={(e) => handleChange('inputRatio', parseInt(e.target.value) || 1)}
+                  min={0.1}
+                  step={0.1}
+                  onChange={(e) => handleChange('inputRatio', parseFloat(e.target.value) || 1)}
                 />
               </div>
               <div className="property-group">
@@ -135,8 +196,9 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
                 <input
                   type="number"
                   value={data.outputRatio}
-                  min={1}
-                  onChange={(e) => handleChange('outputRatio', parseInt(e.target.value) || 1)}
+                  min={0.1}
+                  step={0.1}
+                  onChange={(e) => handleChange('outputRatio', parseFloat(e.target.value) || 1)}
                 />
               </div>
               <div className="property-group info">
@@ -267,7 +329,8 @@ return floor(input + bonus);`}</pre>
                 type="number"
                 value={data.gateThreshold ?? 0}
                 min={0}
-                onChange={(e) => handleChange('gateThreshold', parseInt(e.target.value) || 0)}
+                step={0.1}
+                onChange={(e) => handleChange('gateThreshold', parseFloat(e.target.value) || 0)}
               />
             </div>
           )}

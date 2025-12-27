@@ -2,10 +2,11 @@
  * Safe formula evaluator for production rates and converters.
  * 
  * Available variables:
- * - resources: current resources in the node
+ * - resources: current resources in the node buffer
  * - tick: current simulation tick
  * - capacity: node capacity (-1 if unlimited)
  * - input: (converter only) resources available to convert
+ * - totalProduced / produced: (source only) total produced so far
  * 
  * Available functions:
  * - min(a, b): minimum of two values
@@ -20,9 +21,9 @@
  * - random(): random value between 0 and 1
  * 
  * Examples (Source):
- * - "resources * 0.1" → produce 10% of current resources
+ * - "1 + resources * 0.1" → base 1, plus 10% of buffer
  * - "10 + tick * 0.5" → increase production over time
- * - "min(resources, 5)" → produce max 5 per tick
+ * - "max(1, floor(produced / 10))" → produce more as total grows
  * 
  * Examples (Converter):
  * - "floor(input * 0.5)" → 50% conversion rate
@@ -35,6 +36,7 @@ interface FormulaContext {
   tick: number;
   capacity: number;
   input?: number; // For converters: the amount of input resources
+  totalProduced?: number; // For sources: total produced so far
 }
 
 // Create a safe evaluation context with allowed functions
@@ -44,6 +46,8 @@ const createSafeContext = (ctx: FormulaContext) => ({
   tick: ctx.tick,
   capacity: ctx.capacity === -1 ? Infinity : ctx.capacity,
   input: ctx.input ?? 0,
+  totalProduced: ctx.totalProduced ?? 0,
+  produced: ctx.totalProduced ?? 0, // Alias
   
   // Math functions
   min: Math.min,
@@ -119,8 +123,8 @@ export function evaluateFormula(formula: string, context: FormulaContext): numbe
       return null;
     }
     
-    // Return non-negative integer
-    return Math.max(0, Math.floor(result));
+    // Return non-negative value (allow decimals)
+    return Math.max(0, result);
   } catch (error) {
     console.warn('Formula evaluation error:', error);
     return null;
