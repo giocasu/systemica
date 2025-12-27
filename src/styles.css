@@ -131,6 +131,147 @@ body {
   margin: 0 5px;
 }
 
+/* Draggable Toolbar */
+.draggable-toolbar {
+  position: absolute;
+  z-index: 1000;
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  min-width: 200px;
+  max-width: 90vw;
+}
+
+.draggable-toolbar.collapsed {
+  min-width: auto;
+}
+
+.toolbar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #0f3460;
+  cursor: grab;
+  user-select: none;
+  border-bottom: 1px solid #0a1a2e;
+}
+
+.toolbar-header:active {
+  cursor: grabbing;
+}
+
+.toolbar-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.toolbar-header-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.toolbar-collapse-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 0.8rem;
+  border-radius: 3px;
+}
+
+.toolbar-collapse-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.toolbar-content {
+  padding: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.toolbar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+.section-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #666;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.toolbar-buttons {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.toolbar-buttons button {
+  padding: 6px 10px;
+  background: #0f3460;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.15s;
+}
+
+.toolbar-buttons button:hover:not(:disabled) {
+  background: #e94560;
+}
+
+.toolbar-buttons button.active {
+  background: #e94560;
+  box-shadow: 0 0 8px rgba(233, 69, 96, 0.5);
+}
+
+.toolbar-buttons button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.toolbar-section .speed-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.toolbar-section .speed-control input[type="range"] {
+  width: 60px;
+  height: 4px;
+  accent-color: #e94560;
+}
+
+.toolbar-section .speed-control .speed-value {
+  font-size: 0.7rem;
+  min-width: 28px;
+  color: #e94560;
+  font-weight: bold;
+}
+
+.share-msg {
+  font-size: 0.75rem;
+  color: #4ade80;
+  white-space: nowrap;
+}
+
 /* Template Dropdown */
 .template-dropdown {
   position: relative;
@@ -242,12 +383,18 @@ body {
 
 /* Properties Panel */
 .properties-panel {
+  position: fixed;
+  top: 60px;
+  right: 10px;
   width: 260px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
   background: #16213e;
   border: 1px solid #0f3460;
   border-radius: 8px;
   padding: 15px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  z-index: 100;
 }
 
 .properties-panel h3 {
