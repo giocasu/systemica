@@ -28,10 +28,14 @@ export function Toolbar() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleNew = () => {
-    if (nodes.length > 0) {
-      if (confirm('Create new project? Unsaved changes will be lost.')) {
-        newProject();
-      }
+    if (nodes.length === 0) {
+      // Already empty, just clear localStorage
+      localStorage.removeItem('game-economy-simulator');
+      return;
+    }
+    if (confirm('Create new project? Unsaved changes will be lost.')) {
+      newProject();
+      localStorage.removeItem('game-economy-simulator');
     }
   };
 
@@ -97,7 +101,7 @@ export function Toolbar() {
       <span className="separator">|</span>
 
       <div className="controls">
-        <button onClick={handleNew} title="New project">📄 New</button>
+        <button onClick={handleNew} title="New project (clear canvas)">🗑️ Clear</button>
         <button onClick={handleSave}>💾 Save</button>
         <button onClick={handleLoad}>📂 Load</button>
         <button onClick={exportStatsToCSV} disabled={resourceHistory.length === 0} title="Export stats to CSV">📊 CSV</button>
