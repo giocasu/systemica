@@ -405,3 +405,42 @@ body {
     stroke-dashoffset: -10;
   }
 }
+
+/* Resource Chart */
+.resource-chart {
+  background: rgba(22, 33, 62, 0.95);
+  border: 1px solid #0f3460;
+  border-radius: 8px;
+  padding: 12px;
+  width: 350px;
+  backdrop-filter: blur(4px);
+}
+
+.resource-chart h4 {
+  margin: 0 0 8px 0;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.resource-chart.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.resource-chart.empty p {
+  margin: 0;
+}
+
+/* Recharts customization */
+.recharts-legend-item-text {
+  color: #ccc !important;
+}
+
+.recharts-cartesian-axis-tick-value {
+  fill: #888;
+}
+

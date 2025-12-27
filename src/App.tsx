@@ -5,6 +5,7 @@ import {
   Background,
   BackgroundVariant,
   Panel,
+  MiniMap,
   useReactFlow,
   ReactFlowProvider,
   Edge,
@@ -17,6 +18,7 @@ import { Toolbar } from './components/Toolbar';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { EdgePropertiesPanel } from './components/EdgePropertiesPanel';
 import { StatusBar } from './components/StatusBar';
+import { ResourceChart } from './components/ResourceChart';
 import { NodeType } from './types';
 
 function Flow() {
@@ -170,10 +172,27 @@ function Flow() {
           }}
         >
           <Controls />
+          <MiniMap
+            nodeColor={(node) => {
+              switch (node.type) {
+                case 'source': return '#4ade80';
+                case 'pool': return '#60a5fa';
+                case 'drain': return '#f87171';
+                case 'converter': return '#fbbf24';
+                case 'gate': return '#a78bfa';
+                default: return '#888';
+              }
+            }}
+            maskColor="rgba(0, 0, 0, 0.8)"
+            style={{ background: '#0a0a1a' }}
+          />
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#2a2a4e" />
           <Panel position="top-right">
             {selectedNodeId && <PropertiesPanel nodeId={selectedNodeId} />}
             {selectedEdgeId && <EdgePropertiesPanel edgeId={selectedEdgeId} />}
+          </Panel>
+          <Panel position="bottom-right">
+            <ResourceChart />
           </Panel>
         </ReactFlow>
       </div>

@@ -30,6 +30,12 @@ interface ClipboardData {
   edges: Edge<EdgeData>[];
 }
 
+// Resource history entry for charts
+export interface ResourceHistoryEntry {
+  tick: number;
+  [nodeId: string]: number;
+}
+
 // Project save format
 export interface ProjectData {
   version: string;
@@ -57,6 +63,9 @@ interface SimulatorState {
   
   // Clipboard
   clipboard: ClipboardData | null;
+  
+  // Resource history for charts
+  resourceHistory: ResourceHistoryEntry[];
   
   // Actions
   onNodesChange: (changes: NodeChange<Node<NodeData>>[]) => void;
@@ -119,6 +128,9 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   
   // Clipboard
   clipboard: null,
+  
+  // Resource history for charts
+  resourceHistory: [],
 
   onNodesChange: (changes) => {
     set((state) => ({
@@ -356,9 +368,25 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     }
 
     // Update state
+    const newTick = get().currentTick + 1;
+    const updatedNodes = Array.from(nodeMap.values());
+    
+    // Build resource history entry
+    const historyEntry: ResourceHistoryEntry = { tick: newTick };
+    for (const node of updatedNodes) {
+      // Only track pools, sources with resources, and converters
+      if (node.data.nodeType !== 'drain' && node.data.nodeType !== 'gate') {
+        historyEntry[node.id] = node.data.resources;
+      }
+    }
+    
+    // Keep last 100 entries
+    const newHistory = [...get().resourceHistory, historyEntry].slice(-100);
+    
     set({
-      nodes: Array.from(nodeMap.values()),
-      currentTick: get().currentTick + 1,
+      nodes: updatedNodes,
+      currentTick: newTick,
+      resourceHistory: newHistory,
     });
   },
 
@@ -379,6 +407,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       })),
       currentTick: 0,
       isRunning: false,
+      resourceHistory: [],
     });
   },
 

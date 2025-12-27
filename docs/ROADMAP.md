@@ -25,12 +25,12 @@ Ultimo aggiornamento: 27 Dicembre 2025
 
 | Feature | Descrizione | Stato |
 |---------|-------------|-------|
-| **Grafici real-time** | Chart delle risorse nel tempo | ❌ Da fare |
+| **Grafici real-time** | Chart delle risorse nel tempo | ✅ Completato |
+| **Minimap** | Vista d'insieme del diagramma | ✅ Completato |
 | **Gate condizionali** | If/else sul flusso | ❌ Da fare |
 | **Formule custom** | Espressioni per production rate | ❌ Da fare |
 | **Random/Probability** | Nodi probabilistici | ❌ Da fare |
 | **Export statistiche** | CSV/report della simulazione | ❌ Da fare |
-| **Minimap** | Vista d'insieme del diagramma | ❌ Da fare |
 
 ## 📋 Legenda
 
@@ -39,6 +39,12 @@ Ultimo aggiornamento: 27 Dicembre 2025
 - ❌ Da fare
 
 ## 📝 Note di Sviluppo
+
+### v0.6.0 (27/12/2025)
+- ✅ Grafici real-time con Recharts
+- ✅ Tracking delle risorse nel tempo (ultimi 100 tick)
+- ✅ Minimap per navigazione del diagramma
+- ✅ Colori distinti per tipo di nodo nella minimap
 
 ### v0.5.0 (27/12/2025)
 - ✅ Template predefiniti per scenari comuni di game economy
