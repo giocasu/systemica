@@ -17,8 +17,9 @@ Un simulatore visuale di economie di gioco ispirato a **Machinations**, progetta
 9. [Formule Custom](#-formule-custom)
 10. [Script Personalizzati](#-script-personalizzati-avanzato)
 11. [Salvataggio e Export](#-salvataggio-e-export)
-12. [Scorciatoie da Tastiera](#-scorciatoie-da-tastiera)
-13. [Casi d'Uso](#-casi-duso)
+12. [Auto-save e Condivisione](#-auto-save-e-condivisione)
+13. [Scorciatoie da Tastiera](#-scorciatoie-da-tastiera)
+14. [Casi d'Uso](#-casi-duso)
 
 ---
 
@@ -470,6 +471,42 @@ Il CSV contiene:
 - Una colonna per ogni nodo con le risorse
 
 Utile per analisi in Excel, Google Sheets, ecc.
+
+---
+
+## 🔗 Auto-save e Condivisione
+
+### Auto-save
+
+Il tuo lavoro viene **salvato automaticamente** nel browser (localStorage):
+
+- Ogni modifica viene salvata dopo 500ms
+- Al refresh della pagina, il diagramma viene ripristinato automaticamente
+- Non serve salvare manualmente per lavori temporanei
+
+### Link Condivisibile
+
+Genera un URL unico per condividere il tuo diagramma:
+
+1. Crea il tuo diagramma
+2. Clicca **🔗 Share** (angolo in alto a sinistra del canvas)
+3. Il link viene copiato negli appunti
+4. Invia il link a chiunque!
+
+Chi apre il link vedrà esattamente il tuo diagramma.
+
+**Note tecniche:**
+- Lo stato del canvas viene compresso (gzip) e codificato nell'URL
+- Funziona meglio per diagrammi piccoli/medi
+- Per progetti grandi, usa **💾 Save** per scaricare il file JSON
+
+### Pulsanti di Validazione
+
+Sia la modalità **Formula** che **Script** includono un pulsante **✓ Validate**:
+
+- Clicca per verificare la sintassi prima dell'esecuzione
+- ✅ Verde = valido
+- ❌ Rosso = errore con messaggio
 
 ---
 

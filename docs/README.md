@@ -17,8 +17,9 @@ A visual game economy simulator inspired by **Machinations**, designed to model 
 9. [Custom Formulas](#-custom-formulas)
 10. [Custom Scripts](#-custom-scripts-advanced)
 11. [Save and Export](#-save-and-export)
-12. [Keyboard Shortcuts](#-keyboard-shortcuts)
-13. [Use Cases](#-use-cases)
+12. [Auto-save and Sharing](#-auto-save-and-sharing)
+13. [Keyboard Shortcuts](#-keyboard-shortcuts)
+14. [Use Cases](#-use-cases)
 
 ---
 
@@ -93,6 +94,7 @@ npm run dev
 | 📂 Load | Load JSON project |
 | 📊 CSV | Export simulation statistics |
 | 📋 Templates | Load pre-built scenario |
+| 🔗 Share | Copy shareable link to clipboard |
 
 ### Node Palette
 
@@ -470,6 +472,42 @@ The CSV contains:
 - One column per node with resources
 
 Useful for analysis in Excel, Google Sheets, etc.
+
+---
+
+## 🔗 Auto-save and Sharing
+
+### Auto-save
+
+Your work is **automatically saved** to browser localStorage:
+
+- Every change is saved after 500ms
+- On page refresh, your diagram is restored automatically
+- No need to manually save for temporary work
+
+### Share Link
+
+Generate a unique URL to share your diagram:
+
+1. Create your diagram
+2. Click **🔗 Share** (top-left corner of canvas)
+3. The link is copied to your clipboard
+4. Send the link to anyone!
+
+Whoever opens the link will see your exact diagram.
+
+**Technical notes:**
+- The canvas state is compressed (gzip) and encoded in the URL
+- Works best for small to medium diagrams
+- For large projects, use **💾 Save** to download a JSON file
+
+### Validation Buttons
+
+Both **Formula** and **Script** modes include a **✓ Validate** button:
+
+- Click to check syntax before running
+- ✅ Green = valid
+- ❌ Red = error with message
 
 ---
 

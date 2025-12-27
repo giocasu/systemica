@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useState } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -20,6 +20,13 @@ import { EdgePropertiesPanel } from './components/EdgePropertiesPanel';
 import { StatusBar } from './components/StatusBar';
 import { ResourceChart } from './components/ResourceChart';
 import { NodeType } from './types';
+import { 
+  saveToLocalStorage, 
+  loadFromLocalStorage, 
+  parseShareableLink,
+  generateShareableLink,
+  copyToClipboard 
+} from './utils/persistence';
 
 function Flow() {
   const {
@@ -42,10 +49,64 @@ function Flow() {
     redo,
     copySelected,
     paste,
+    loadState,
   } = useSimulatorStore();
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
+  const [shareMessage, setShareMessage] = useState<string | null>(null);
+  const initialLoadDone = useRef(false);
+
+  // Load from URL share link or localStorage on mount
+  useEffect(() => {
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
+
+    const loadInitialState = async () => {
+      // First, try to load from URL share link
+      const sharedState = await parseShareableLink();
+      if (sharedState) {
+        loadState(sharedState.nodes, sharedState.edges);
+        // Clear the hash to avoid re-loading on refresh
+        window.history.replaceState(null, '', window.location.pathname);
+        return;
+      }
+
+      // Otherwise, load from localStorage
+      const savedState = loadFromLocalStorage();
+      if (savedState && savedState.nodes.length > 0) {
+        loadState(savedState.nodes, savedState.edges);
+      }
+    };
+
+    loadInitialState();
+  }, [loadState]);
+
+  // Auto-save to localStorage whenever nodes or edges change
+  useEffect(() => {
+    // Don't save empty state or during initial load
+    if (!initialLoadDone.current) return;
+    
+    // Debounce the save
+    const timeout = setTimeout(() => {
+      saveToLocalStorage(nodes, edges);
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [nodes, edges]);
+
+  // Generate share link
+  const handleShare = useCallback(async () => {
+    try {
+      const url = await generateShareableLink(nodes, edges);
+      await copyToClipboard(url);
+      setShareMessage('✅ Link copied!');
+      setTimeout(() => setShareMessage(null), 3000);
+    } catch {
+      setShareMessage('❌ Failed to generate link');
+      setTimeout(() => setShareMessage(null), 3000);
+    }
+  }, [nodes, edges]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -187,6 +248,19 @@ function Flow() {
             style={{ background: '#0a0a1a' }}
           />
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#2a2a4e" />
+          <Panel position="top-left">
+            <div className="share-panel">
+              <button 
+                className="share-btn" 
+                onClick={handleShare}
+                disabled={nodes.length === 0}
+                title="Copy shareable link"
+              >
+                🔗 Share
+              </button>
+              {shareMessage && <span className="share-message">{shareMessage}</span>}
+            </div>
+          </Panel>
           <Panel position="top-right">
             {selectedNodeId && <PropertiesPanel nodeId={selectedNodeId} />}
             {selectedEdgeId && <EdgePropertiesPanel edgeId={selectedEdgeId} />}

@@ -103,6 +103,7 @@ interface SimulatorState {
   // Save/Load
   saveProject: (name: string) => ProjectData;
   loadProject: (data: ProjectData) => void;
+  loadState: (nodes: Node<NodeData>[], edges: Edge<EdgeData>[]) => void;
   exportToFile: (name: string) => void;
   importFromFile: (file: File) => Promise<void>;
   
@@ -615,6 +616,26 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       selectedEdgeId: null,
       isRunning: false,
       currentTick: 0,
+    });
+  },
+
+  // Load raw state (for auto-restore and share links)
+  loadState: (nodes: Node<NodeData>[], edges: Edge<EdgeData>[]) => {
+    // Reset counter based on loaded nodes
+    const maxId = nodes.reduce((max, node) => {
+      const match = node.id.match(/node_(\d+)/);
+      return match ? Math.max(max, parseInt(match[1])) : max;
+    }, 0);
+    nodeIdCounter = maxId + 1;
+
+    set({
+      nodes,
+      edges,
+      selectedNodeId: null,
+      selectedEdgeId: null,
+      isRunning: false,
+      currentTick: 0,
+      resourceHistory: [],
     });
   },
 
