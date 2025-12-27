@@ -30,9 +30,18 @@ function BaseNode({ data, selected, className }: BaseNodeProps) {
   );
 }
 
-// Source Node - produces resources
+// Source Node - produces resources (NO input handle - sources only produce)
 export const SourceNode = memo(({ data, selected }: CustomNodeProps) => (
-  <BaseNode data={data} selected={selected} className="node-source" />
+  <div className={`custom-node node-source ${selected ? 'selected' : ''}`}>
+    <div className="node-label">{data.label}</div>
+    <div className="node-value">{data.resources}</div>
+    {data.useFormula && data.formula ? (
+      <div className="node-rate">f(x)</div>
+    ) : data.productionRate > 0 ? (
+      <div className="node-rate">+{data.productionRate}/tick</div>
+    ) : null}
+    <Handle type="source" position={Position.Right} />
+  </div>
 ));
 
 // Pool Node - stores resources
@@ -51,7 +60,11 @@ export const ConverterNode = memo(({ data, selected }: CustomNodeProps) => (
     <Handle type="target" position={Position.Left} />
     <div className="node-label">{data.label}</div>
     <div className="node-value">{data.resources}</div>
-    <div className="node-ratio">⚙️ {data.inputRatio}→{data.outputRatio}</div>
+    {data.useFormula && data.formula ? (
+      <div className="node-ratio">⚙️ f(x)→out</div>
+    ) : (
+      <div className="node-ratio">⚙️ {data.inputRatio}→{data.outputRatio}</div>
+    )}
     <Handle type="source" position={Position.Right} />
   </div>
 ));

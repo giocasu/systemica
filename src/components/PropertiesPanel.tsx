@@ -109,26 +109,59 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
 
       {data.nodeType === 'converter' && (
         <>
-          <div className="property-group">
-            <label>Input Ratio (resources consumed)</label>
-            <input
-              type="number"
-              value={data.inputRatio}
-              min={1}
-              onChange={(e) => handleChange('inputRatio', parseInt(e.target.value) || 1)}
-            />
-          </div>
-          <div className="property-group">
-            <label>Output Ratio (resources produced)</label>
-            <input
-              type="number"
-              value={data.outputRatio}
-              min={1}
-              onChange={(e) => handleChange('outputRatio', parseInt(e.target.value) || 1)}
-            />
+          <div className="property-group formula-section">
+            <label>
+              <input
+                type="checkbox"
+                checked={data.useFormula ?? false}
+                onChange={(e) => handleChange('useFormula', e.target.checked)}
+              />
+              Use Formula
+            </label>
+            {data.useFormula ? (
+              <>
+                <input
+                  type="text"
+                  value={data.formula ?? ''}
+                  placeholder="e.g., input * 0.5"
+                  className={formulaError ? 'error' : ''}
+                  onChange={(e) => {
+                    const formula = e.target.value;
+                    handleChange('formula', formula);
+                    setFormulaError(validateFormula(formula));
+                  }}
+                />
+                {formulaError && <span className="formula-error">{formulaError}</span>}
+                <div className="formula-help">
+                  <small>Variables: input, resources, tick</small>
+                  <small>Functions: min, max, floor, ceil, round, random</small>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="property-group">
+                  <label>Input Ratio (resources consumed)</label>
+                  <input
+                    type="number"
+                    value={data.inputRatio}
+                    min={1}
+                    onChange={(e) => handleChange('inputRatio', parseInt(e.target.value) || 1)}
+                  />
+                </div>
+                <div className="property-group">
+                  <label>Output Ratio (resources produced)</label>
+                  <input
+                    type="number"
+                    value={data.outputRatio}
+                    min={1}
+                    onChange={(e) => handleChange('outputRatio', parseInt(e.target.value) || 1)}
+                  />
+                </div>
+              </>
+            )}
           </div>
           <div className="property-group info">
-            <span>⚙️ Converts {data.inputRatio} → {data.outputRatio}</span>
+            <span>⚙️ {data.useFormula ? 'Formula mode' : `Converts ${data.inputRatio} → ${data.outputRatio}`}</span>
           </div>
         </>
       )}

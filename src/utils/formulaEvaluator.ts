@@ -1,10 +1,11 @@
 /**
- * Safe formula evaluator for production rates.
+ * Safe formula evaluator for production rates and converters.
  * 
  * Available variables:
  * - resources: current resources in the node
  * - tick: current simulation tick
  * - capacity: node capacity (-1 if unlimited)
+ * - input: (converter only) resources available to convert
  * 
  * Available functions:
  * - min(a, b): minimum of two values
@@ -18,19 +19,22 @@
  * - sin(x), cos(x), tan(x): trigonometric functions
  * - random(): random value between 0 and 1
  * 
- * Examples:
+ * Examples (Source):
  * - "resources * 0.1" → produce 10% of current resources
  * - "10 + tick * 0.5" → increase production over time
  * - "min(resources, 5)" → produce max 5 per tick
- * - "max(0, 100 - resources)" → produce more when low
- * - "floor(resources / 10)" → tiered production
- * - "random() * 10" → random 0-10 per tick
+ * 
+ * Examples (Converter):
+ * - "floor(input * 0.5)" → 50% conversion rate
+ * - "min(input, 10)" → max 10 output per tick
+ * - "input + floor(tick / 10)" → bonus output over time
  */
 
 interface FormulaContext {
   resources: number;
   tick: number;
   capacity: number;
+  input?: number; // For converters: the amount of input resources
 }
 
 // Create a safe evaluation context with allowed functions
@@ -39,6 +43,7 @@ const createSafeContext = (ctx: FormulaContext) => ({
   resources: ctx.resources,
   tick: ctx.tick,
   capacity: ctx.capacity === -1 ? Infinity : ctx.capacity,
+  input: ctx.input ?? 0,
   
   // Math functions
   min: Math.min,
