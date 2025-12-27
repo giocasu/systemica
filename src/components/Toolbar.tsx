@@ -66,7 +66,10 @@ export function Toolbar() {
 
   return (
     <header className="toolbar">
-      <h1>⚙️ Systemica</h1>
+      <div className="brand">
+        <img src="/logo.svg" alt="Systemica" className="brand-logo" />
+        <h1>Systemica</h1>
+      </div>
       
       <div className="controls">
         <button onClick={toggleRunning} className={isRunning ? 'active' : ''}>

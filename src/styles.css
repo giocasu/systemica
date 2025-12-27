@@ -63,6 +63,17 @@ body {
   z-index: 1100;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo {
+  width: 32px;
+  height: 32px;
+}
+
 .toolbar h1 {
   font-size: 1.2rem;
   font-weight: 600;
