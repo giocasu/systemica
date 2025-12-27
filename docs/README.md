@@ -15,9 +15,10 @@ A visual game economy simulator inspired by **Machinations**, designed to model 
 7. [Advanced Properties](#-advanced-properties)
 8. [Pre-built Templates](#-pre-built-templates)
 9. [Custom Formulas](#-custom-formulas)
-10. [Save and Export](#-save-and-export)
-11. [Keyboard Shortcuts](#-keyboard-shortcuts)
-12. [Use Cases](#-use-cases)
+10. [Custom Scripts](#-custom-scripts-advanced)
+11. [Save and Export](#-save-and-export)
+12. [Keyboard Shortcuts](#-keyboard-shortcuts)
+13. [Use Cases](#-use-cases)
 
 ---
 
@@ -351,7 +352,100 @@ pow(1.1, tick)           // Exponential growth
 
 ---
 
-## 💾 Save and Export
+## � Custom Scripts (Advanced)
+
+For complex logic beyond simple formulas, **Source** and **Converter** nodes support JavaScript scripts executed in a secure sandbox (QuickJS WebAssembly).
+
+### Activation
+
+1. Select a Source or Converter node
+2. In the properties panel, click the **📜 Script** mode button
+3. Enter your JavaScript code
+4. The script must return a number
+
+### Security Features
+
+- **Sandboxed Execution**: Scripts run in isolated WebAssembly environment
+- **Memory Limit**: 1MB per script execution
+- **Cycle Limit**: 10,000 JavaScript operations per tick
+- **Stack Limit**: 50KB maximum call stack
+- **No External Access**: Cannot access browser APIs, DOM, network, or file system
+
+### Available Context Variables
+
+| Variable | Description |
+|----------|-------------|
+| `input` | Resources received (Converters) or current resources (Sources) |
+| `resources` | Current resources in the node |
+| `capacity` | Node capacity (-1 means unlimited) |
+| `tick` | Current simulation tick |
+
+### Available Functions
+
+| Function | Description |
+|----------|-------------|
+| `getNode(id)` | Get another node's data: `{ resources, capacity }` |
+| `state` | Persistent object to store values between ticks |
+| `min()`, `max()`, `floor()`, `ceil()`, `round()` | Math functions |
+| `random()`, `sqrt()`, `pow()`, `sin()`, `cos()`, `abs()` | Math functions |
+
+### Script Examples
+
+```javascript
+// Adaptive production: produce more when resources are low
+if (resources < 10) {
+  return 5;
+} else if (resources < 50) {
+  return 2;
+} else {
+  return 1;
+}
+```
+
+```javascript
+// Cyclic production with wave pattern
+return 3 + Math.round(Math.sin(tick * 0.5) * 2);
+```
+
+```javascript
+// Conversion with efficiency curve
+const efficiency = Math.min(1, input / 10);
+return Math.floor(input * efficiency);
+```
+
+```javascript
+// Count-based logic with persistent state
+if (state.counter === undefined) {
+  state.counter = 0;
+}
+state.counter++;
+return state.counter % 3 === 0 ? 10 : 2; // Burst every 3 ticks
+```
+
+```javascript
+// React to another node's state
+const warehouse = getNode('warehouse-123');
+if (warehouse && warehouse.resources < 20) {
+  return 5; // Produce more when warehouse is low
+}
+return 1;
+```
+
+### Scripts vs Formulas
+
+| Feature | Formula | Script |
+|---------|---------|--------|
+| Complexity | Simple expressions | Full JavaScript logic |
+| Conditionals | No | Yes (`if/else`, `switch`) |
+| Loops | No | Yes (`for`, `while`) |
+| Persistent State | No | Yes (`state` object) |
+| Other Node Access | No | Yes (`getNode()`) |
+| Performance | Faster | Slightly slower (WASM) |
+| Execution | Synchronous | Async (uses cached value) |
+
+---
+
+## �💾 Save and Export
 
 ### Save Project
 

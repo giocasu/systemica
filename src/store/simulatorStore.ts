@@ -12,6 +12,7 @@ import {
 import { NodeData, NodeType, nodeDefaults } from '../types';
 import { getTemplateById } from '../templates';
 import { evaluateFormula } from '../utils/formulaEvaluator';
+import { executeScript } from '../utils/scriptRunner';
 
 // Edge data type
 export interface EdgeData {
@@ -83,6 +84,7 @@ interface SimulatorState {
   tick: () => void;
   step: () => void;
   reset: () => void;
+  executeScriptsAsync: () => Promise<void>;
   
   // Simulation speed
   setTicksPerSecond: (tps: number) => void;
@@ -193,6 +195,9 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         gateThreshold: defaults.gateThreshold ?? 0,
         formula: defaults.formula ?? '',
         useFormula: defaults.useFormula ?? false,
+        processingMode: defaults.processingMode ?? 'fixed',
+        script: defaults.script ?? '',
+        scriptState: defaults.scriptState ?? {},
       },
     };
 
@@ -277,9 +282,11 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       return Math.random() * 100 < prob;
     };
     
-    // Helper function to get production rate (uses formula if enabled)
+    // Helper function to get production rate (uses formula or script if enabled)
     const getProductionRate = (node: Node<NodeData>): number => {
-      if (node.data.useFormula && node.data.formula) {
+      const mode = node.data.processingMode || (node.data.useFormula ? 'formula' : 'fixed');
+      
+      if (mode === 'formula' && node.data.formula) {
         const result = evaluateFormula(node.data.formula, {
           resources: node.data.resources,
           tick: currentTick,
@@ -287,6 +294,16 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         });
         return result ?? node.data.productionRate;
       }
+      
+      // Script mode: scripts are async, so we use cached result or fall back to formula/fixed
+      // The actual script execution happens separately and updates scriptState
+      if (mode === 'script' && node.data.script) {
+        // For now, scripts use the last computed value stored in scriptState
+        // or fall back to productionRate
+        const lastOutput = node.data.scriptState?.lastOutput;
+        return typeof lastOutput === 'number' ? lastOutput : node.data.productionRate;
+      }
+      
       return node.data.productionRate;
     };
 
@@ -368,8 +385,10 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         let outputAmount: number;
         let inputConsumed: number;
         
-        // Check if using formula mode
-        if (node.data.useFormula && node.data.formula) {
+        // Determine processing mode
+        const mode = node.data.processingMode || (node.data.useFormula ? 'formula' : 'fixed');
+        
+        if (mode === 'formula' && node.data.formula) {
           // Formula mode: formula calculates output from input
           const result = evaluateFormula(node.data.formula, {
             resources: node.data.resources,
@@ -383,6 +402,15 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
             inputConsumed = inputResources; // Consume all input
           } else {
             continue; // Formula returned 0 or failed
+          }
+        } else if (mode === 'script' && node.data.script) {
+          // Script mode: use cached result from scriptState
+          const cachedOutput = node.data.scriptState?.lastOutput;
+          if (typeof cachedOutput === 'number' && cachedOutput > 0) {
+            outputAmount = cachedOutput;
+            inputConsumed = inputResources;
+          } else {
+            continue;
           }
         } else {
           // Ratio mode: traditional input/output ratio
@@ -465,6 +493,73 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       nodes: updatedNodes,
       currentTick: newTick,
       resourceHistory: newHistory,
+    });
+    
+    // Execute scripts asynchronously for next tick
+    // This pre-computes script outputs so they're ready for the next tick
+    get().executeScriptsAsync();
+  },
+  
+  // Execute all scripts asynchronously and cache their results
+  executeScriptsAsync: async () => {
+    const { nodes, currentTick } = get();
+    
+    // Find all nodes with scripts
+    const scriptNodes = nodes.filter(n => {
+      const mode = n.data.processingMode || (n.data.useFormula ? 'formula' : 'fixed');
+      return mode === 'script' && n.data.script;
+    });
+    
+    if (scriptNodes.length === 0) return;
+    
+    // Create a getter for other nodes
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+    const getNode = (id: string) => {
+      const node = nodeMap.get(id);
+      if (!node) return null;
+      return { resources: node.data.resources, capacity: node.data.capacity };
+    };
+    
+    // Execute all scripts in parallel
+    const results = await Promise.all(
+      scriptNodes.map(async (node) => {
+        try {
+          const result = await executeScript(node.data.script, {
+            input: node.data.resources,
+            resources: node.data.resources,
+            capacity: node.data.capacity,
+            tick: currentTick,
+            getNode,
+            state: node.data.scriptState || {},
+          });
+          
+          return { nodeId: node.id, result };
+        } catch (error) {
+          console.warn(`Script error in node ${node.id}:`, error);
+          return { nodeId: node.id, result: { success: false, value: 0, error: 'Execution failed' } };
+        }
+      })
+    );
+    
+    // Update nodes with script results
+    set({
+      nodes: get().nodes.map(node => {
+        const scriptResult = results.find(r => r.nodeId === node.id);
+        if (!scriptResult) return node;
+        
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            scriptState: {
+              ...node.data.scriptState,
+              lastOutput: scriptResult.result.value,
+              lastError: scriptResult.result.error,
+              ...(scriptResult.result.newState || {}),
+            },
+          },
+        };
+      }),
     });
   },
 

@@ -369,6 +369,139 @@ body {
   line-height: 1.4;
 }
 
+/* Mode Selector */
+.mode-selector {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 6px 8px;
+  background: #1a1a2e;
+  border: 1px solid #0f3460;
+  border-radius: 4px;
+  color: #888;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-btn:hover {
+  background: #0f3460;
+  color: #fff;
+}
+
+.mode-btn.active {
+  background: #e94560;
+  border-color: #e94560;
+  color: #fff;
+}
+
+/* Script Section */
+.script-section textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px;
+  background: #0d0d1a;
+  border: 1px solid #0f3460;
+  border-radius: 4px;
+  color: #fff;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  resize: vertical;
+  tab-size: 2;
+}
+
+.script-section textarea:focus {
+  outline: none;
+  border-color: #e94560;
+}
+
+.script-section textarea.error {
+  border-color: #ef4444;
+}
+
+.script-validating {
+  color: #888;
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+.script-error {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 4px;
+  display: block;
+}
+
+.script-help {
+  margin-top: 8px;
+}
+
+.script-help details {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.script-help summary {
+  padding: 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.script-help summary:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.script-api {
+  padding: 10px;
+  font-size: 0.7rem;
+  color: #aaa;
+}
+
+.script-api strong {
+  color: #e94560;
+  display: block;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+.script-api strong:first-child {
+  margin-top: 0;
+}
+
+.script-api ul {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.script-api li {
+  margin: 2px 0;
+}
+
+.script-api code {
+  background: rgba(233, 69, 96, 0.2);
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  color: #e94560;
+}
+
+.script-api pre {
+  background: #0d0d1a;
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 8px;
+  overflow-x: auto;
+  font-family: 'Consolas', 'Monaco', monospace;
+  color: #4ade80;
+}
+
 /* Status Bar */
 .status-bar {
   display: flex;

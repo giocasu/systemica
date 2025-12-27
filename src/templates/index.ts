@@ -31,6 +31,9 @@ const createNodeData = (
   gateThreshold: 0,
   formula: '',
   useFormula: false,
+  processingMode: 'fixed',
+  script: '',
+  scriptState: {},
   ...overrides,
 });
 

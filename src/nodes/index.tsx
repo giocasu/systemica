@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { NodeData } from '../types';
+import { NodeData, ProcessingMode } from '../types';
 
 // Props for our custom nodes
 interface CustomNodeProps {
@@ -11,6 +11,11 @@ interface CustomNodeProps {
 interface BaseNodeProps extends CustomNodeProps {
   className: string;
 }
+
+// Helper to get processing mode (supports legacy useFormula)
+const getMode = (data: NodeData): ProcessingMode => {
+  return data.processingMode || (data.useFormula ? 'formula' : 'fixed');
+};
 
 // Base node component
 function BaseNode({ data, selected, className }: BaseNodeProps) {
@@ -31,18 +36,24 @@ function BaseNode({ data, selected, className }: BaseNodeProps) {
 }
 
 // Source Node - produces resources (NO input handle - sources only produce)
-export const SourceNode = memo(({ data, selected }: CustomNodeProps) => (
-  <div className={`custom-node node-source ${selected ? 'selected' : ''}`}>
-    <div className="node-label">{data.label}</div>
-    <div className="node-value">{data.resources}</div>
-    {data.useFormula && data.formula ? (
-      <div className="node-rate">f(x)</div>
-    ) : data.productionRate > 0 ? (
-      <div className="node-rate">+{data.productionRate}/tick</div>
-    ) : null}
-    <Handle type="source" position={Position.Right} />
-  </div>
-));
+export const SourceNode = memo(({ data, selected }: CustomNodeProps) => {
+  const mode = getMode(data);
+  
+  return (
+    <div className={`custom-node node-source ${selected ? 'selected' : ''}`}>
+      <div className="node-label">{data.label}</div>
+      <div className="node-value">{data.resources}</div>
+      {mode === 'script' ? (
+        <div className="node-rate">📜 script</div>
+      ) : mode === 'formula' && data.formula ? (
+        <div className="node-rate">📐 f(x)</div>
+      ) : data.productionRate > 0 ? (
+        <div className="node-rate">+{data.productionRate}/tick</div>
+      ) : null}
+      <Handle type="source" position={Position.Right} />
+    </div>
+  );
+});
 
 // Pool Node - stores resources
 export const PoolNode = memo(({ data, selected }: CustomNodeProps) => (
@@ -55,19 +66,25 @@ export const DrainNode = memo(({ data, selected }: CustomNodeProps) => (
 ));
 
 // Converter Node - transforms resources
-export const ConverterNode = memo(({ data, selected }: CustomNodeProps) => (
-  <div className={`custom-node node-converter ${selected ? 'selected' : ''}`}>
-    <Handle type="target" position={Position.Left} />
-    <div className="node-label">{data.label}</div>
-    <div className="node-value">{data.resources}</div>
-    {data.useFormula && data.formula ? (
-      <div className="node-ratio">⚙️ f(x)→out</div>
-    ) : (
-      <div className="node-ratio">⚙️ {data.inputRatio}→{data.outputRatio}</div>
-    )}
-    <Handle type="source" position={Position.Right} />
-  </div>
-));
+export const ConverterNode = memo(({ data, selected }: CustomNodeProps) => {
+  const mode = getMode(data);
+  
+  return (
+    <div className={`custom-node node-converter ${selected ? 'selected' : ''}`}>
+      <Handle type="target" position={Position.Left} />
+      <div className="node-label">{data.label}</div>
+      <div className="node-value">{data.resources}</div>
+      {mode === 'script' ? (
+        <div className="node-ratio">⚙️ 📜</div>
+      ) : mode === 'formula' && data.formula ? (
+        <div className="node-ratio">⚙️ f(x)→out</div>
+      ) : (
+        <div className="node-ratio">⚙️ {data.inputRatio}→{data.outputRatio}</div>
+      )}
+      <Handle type="source" position={Position.Right} />
+    </div>
+  );
+});
 
 // Gate Node - controls flow with conditions
 export const GateNode = memo(({ data, selected }: CustomNodeProps) => {

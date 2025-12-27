@@ -15,9 +15,10 @@ Un simulatore visuale di economie di gioco ispirato a **Machinations**, progetta
 7. [Proprietà Avanzate](#-proprietà-avanzate)
 8. [Template Predefiniti](#-template-predefiniti)
 9. [Formule Custom](#-formule-custom)
-10. [Salvataggio e Export](#-salvataggio-e-export)
-11. [Scorciatoie da Tastiera](#-scorciatoie-da-tastiera)
-12. [Casi d'Uso](#-casi-duso)
+10. [Script Personalizzati](#-script-personalizzati-avanzato)
+11. [Salvataggio e Export](#-salvataggio-e-export)
+12. [Scorciatoie da Tastiera](#-scorciatoie-da-tastiera)
+13. [Casi d'Uso](#-casi-duso)
 
 ---
 
@@ -351,7 +352,100 @@ pow(1.1, tick)           // Crescita esponenziale
 
 ---
 
-## 💾 Salvataggio e Export
+## � Script Personalizzati (Avanzato)
+
+Per logiche complesse oltre le semplici formule, i nodi **Source** e **Converter** supportano script JavaScript eseguiti in una sandbox sicura (QuickJS WebAssembly).
+
+### Attivazione
+
+1. Seleziona un nodo Source o Converter
+2. Nel pannello proprietà, clicca il pulsante modalità **📜 Script**
+3. Inserisci il tuo codice JavaScript
+4. Lo script deve restituire un numero
+
+### Caratteristiche di Sicurezza
+
+- **Esecuzione Sandbox**: Gli script vengono eseguiti in ambiente WebAssembly isolato
+- **Limite Memoria**: 1MB per esecuzione script
+- **Limite Cicli**: 10.000 operazioni JavaScript per tick
+- **Limite Stack**: 50KB massimo stack chiamate
+- **Nessun Accesso Esterno**: Non può accedere a API browser, DOM, rete o file system
+
+### Variabili di Contesto Disponibili
+
+| Variabile | Descrizione |
+|-----------|-------------|
+| `input` | Risorse ricevute (Converter) o risorse attuali (Source) |
+| `resources` | Risorse attuali nel nodo |
+| `capacity` | Capacità del nodo (-1 significa illimitata) |
+| `tick` | Tick corrente della simulazione |
+
+### Funzioni Disponibili
+
+| Funzione | Descrizione |
+|----------|-------------|
+| `getNode(id)` | Ottiene dati di un altro nodo: `{ resources, capacity }` |
+| `state` | Oggetto persistente per salvare valori tra i tick |
+| `min()`, `max()`, `floor()`, `ceil()`, `round()` | Funzioni matematiche |
+| `random()`, `sqrt()`, `pow()`, `sin()`, `cos()`, `abs()` | Funzioni matematiche |
+
+### Esempi di Script
+
+```javascript
+// Produzione adattiva: produce di più quando le risorse sono basse
+if (resources < 10) {
+  return 5;
+} else if (resources < 50) {
+  return 2;
+} else {
+  return 1;
+}
+```
+
+```javascript
+// Produzione ciclica con pattern a onda
+return 3 + Math.round(Math.sin(tick * 0.5) * 2);
+```
+
+```javascript
+// Conversione con curva di efficienza
+const efficiency = Math.min(1, input / 10);
+return Math.floor(input * efficiency);
+```
+
+```javascript
+// Logica basata su conteggio con stato persistente
+if (state.counter === undefined) {
+  state.counter = 0;
+}
+state.counter++;
+return state.counter % 3 === 0 ? 10 : 2; // Burst ogni 3 tick
+```
+
+```javascript
+// Reagisce allo stato di un altro nodo
+const warehouse = getNode('warehouse-123');
+if (warehouse && warehouse.resources < 20) {
+  return 5; // Produce di più quando il magazzino è scarso
+}
+return 1;
+```
+
+### Script vs Formule
+
+| Caratteristica | Formula | Script |
+|----------------|---------|--------|
+| Complessità | Espressioni semplici | Logica JavaScript completa |
+| Condizionali | No | Sì (`if/else`, `switch`) |
+| Loop | No | Sì (`for`, `while`) |
+| Stato Persistente | No | Sì (oggetto `state`) |
+| Accesso Altri Nodi | No | Sì (`getNode()`) |
+| Performance | Più veloce | Leggermente più lento (WASM) |
+| Esecuzione | Sincrona | Asincrona (usa valore cache) |
+
+---
+
+## �💾 Salvataggio e Export
 
 ### Salvare Progetto
 
