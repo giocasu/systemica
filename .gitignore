@@ -19,3 +19,5 @@ npm-debug.log*
 # Environment
 .env
 .env.local
+# Session context (local development notes)
+docs/SESSION_CONTEXT.md
