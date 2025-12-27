@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { useSimulatorStore } from '../store/simulatorStore';
 import { NodeType, nodeConfig } from '../types';
+import { TemplateDropdown } from './TemplateDropdown';
 
 export function Toolbar() {
   const { 
@@ -100,6 +101,10 @@ export function Toolbar() {
           style={{ display: 'none' }}
         />
       </div>
+
+      <span className="separator">|</span>
+
+      <TemplateDropdown />
 
       <span className="separator">|</span>
 

@@ -10,6 +10,7 @@ import {
   EdgeChange,
 } from '@xyflow/react';
 import { NodeData, NodeType, nodeDefaults } from '../types';
+import { getTemplateById } from '../templates';
 
 // Edge data type
 export interface EdgeData {
@@ -92,6 +93,9 @@ interface SimulatorState {
   loadProject: (data: ProjectData) => void;
   exportToFile: (name: string) => void;
   importFromFile: (file: File) => Promise<void>;
+  
+  // Templates
+  loadTemplate: (templateId: string) => void;
 }
 
 let nodeIdCounter = 1;
@@ -597,5 +601,35 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       edges: [...state.edges, ...newEdges],
       selectedNodeId: newNodes[0]?.id || null,
     }));
+  },
+
+  // Load a predefined template
+  loadTemplate: (templateId: string) => {
+    const template = getTemplateById(templateId);
+    if (!template) {
+      console.error(`Template not found: ${templateId}`);
+      return;
+    }
+    
+    // Push current state to history before loading template
+    get().pushHistory();
+    
+    // Reset node counter based on template nodes
+    const maxId = template.nodes.reduce((max, node) => {
+      const match = node.id.match(/node_(\d+)/);
+      return match ? Math.max(max, parseInt(match[1])) : max;
+    }, 0);
+    nodeIdCounter = Math.max(nodeIdCounter, maxId + 1);
+    
+    set({
+      nodes: JSON.parse(JSON.stringify(template.nodes)),
+      edges: JSON.parse(JSON.stringify(template.edges)),
+      selectedNodeId: null,
+      selectedEdgeId: null,
+      isRunning: false,
+      currentTick: 0,
+      history: [],
+      historyIndex: -1,
+    });
   },
 }));

@@ -18,7 +18,7 @@ Ultimo aggiornamento: 27 Dicembre 2025
 | **Edge labels** | Mostrare flow rate sulle connessioni | ✅ Completato |
 | **Undo/Redo** | Annulla operazioni | ✅ Completato |
 | **Copia/Incolla nodi** | Duplicare nodi | ✅ Completato |
-| **Scenari predefiniti** | Esempi: loot system, energy system | ❌ Da fare |
+| **Scenari predefiniti** | Esempi: loot system, energy system | ✅ Completato |
 | **Velocità simulazione** | Slider per tick/secondo | ✅ Completato |
 
 ## 🟢 Priorità Bassa (Nice to have)
@@ -39,6 +39,12 @@ Ultimo aggiornamento: 27 Dicembre 2025
 - ❌ Da fare
 
 ## 📝 Note di Sviluppo
+
+### v0.5.0 (27/12/2025)
+- ✅ Template predefiniti per scenari comuni di game economy
+- ✅ 5 template: Loot System, Energy Regen, Crafting, Economy Loop, Mana System
+- ✅ Dropdown menu nella toolbar per selezionare template
+- ✅ Conferma prima di sostituire diagramma esistente
 
 ### v0.4.0 (27/12/2025)
 - ✅ Undo/Redo con history (Ctrl+Z / Ctrl+Y)
