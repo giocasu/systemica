@@ -26,6 +26,9 @@ const createNodeData = (
   isActive: true,
   inputRatio: 1,
   outputRatio: 1,
+  probability: 100,
+  gateCondition: 'always',
+  gateThreshold: 0,
   ...overrides,
 });
 

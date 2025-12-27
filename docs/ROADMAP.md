@@ -27,10 +27,10 @@ Ultimo aggiornamento: 27 Dicembre 2025
 |---------|-------------|-------|
 | **Grafici real-time** | Chart delle risorse nel tempo | ✅ Completato |
 | **Minimap** | Vista d'insieme del diagramma | ✅ Completato |
-| **Gate condizionali** | If/else sul flusso | ❌ Da fare |
+| **Gate condizionali** | If/else sul flusso | ✅ Completato |
+| **Random/Probability** | Nodi probabilistici | ✅ Completato |
+| **Export statistiche** | CSV/report della simulazione | ✅ Completato |
 | **Formule custom** | Espressioni per production rate | ❌ Da fare |
-| **Random/Probability** | Nodi probabilistici | ❌ Da fare |
-| **Export statistiche** | CSV/report della simulazione | ❌ Da fare |
 
 ## 📋 Legenda
 
@@ -39,6 +39,12 @@ Ultimo aggiornamento: 27 Dicembre 2025
 - ❌ Da fare
 
 ## 📝 Note di Sviluppo
+
+### v0.7.0 (27/12/2025)
+- ✅ Gate condizionali (always/if_above/if_below + threshold)
+- ✅ Probability su tutti i nodi (0-100%)
+- ✅ Export statistiche in CSV
+- ✅ Visualizzazione condizione sui nodi Gate
 
 ### v0.6.0 (27/12/2025)
 - ✅ Grafici real-time con Recharts

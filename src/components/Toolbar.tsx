@@ -21,6 +21,8 @@ export function Toolbar() {
     paste,
     selectedNodeId,
     clipboard,
+    exportStatsToCSV,
+    resourceHistory,
   } = useSimulatorStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -93,6 +95,7 @@ export function Toolbar() {
       <div className="controls">
         <button onClick={handleSave}>💾 Save</button>
         <button onClick={handleLoad}>📂 Load</button>
+        <button onClick={exportStatsToCSV} disabled={resourceHistory.length === 0} title="Export stats to CSV">📊 CSV</button>
         <input
           ref={fileInputRef}
           type="file"

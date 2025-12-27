@@ -282,6 +282,31 @@ body {
   border-color: #e94560;
 }
 
+.property-group.info {
+  background: rgba(233, 69, 96, 0.1);
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.probability-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.probability-input input[type="range"] {
+  flex: 1;
+  accent-color: #e94560;
+}
+
+.probability-value {
+  min-width: 40px;
+  text-align: right;
+  color: #e94560;
+  font-weight: bold;
+}
+
 /* Status Bar */
 .status-bar {
   display: flex;
@@ -332,6 +357,14 @@ body {
 }
 
 .custom-node .node-ratio {
+  font-size: 0.7rem;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-top: 4px;
+}
+
+.custom-node .node-condition {
   font-size: 0.7rem;
   background: rgba(0, 0, 0, 0.2);
   padding: 2px 6px;

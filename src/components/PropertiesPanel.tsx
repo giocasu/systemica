@@ -90,6 +90,40 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
         </>
       )}
 
+      {data.nodeType === 'gate' && (
+        <>
+          <div className="property-group">
+            <label>Condition</label>
+            <select
+              value={data.gateCondition ?? 'always'}
+              onChange={(e) => handleChange('gateCondition', e.target.value)}
+            >
+              <option value="always">Always flow</option>
+              <option value="if_above">If resources above threshold</option>
+              <option value="if_below">If resources below threshold</option>
+            </select>
+          </div>
+          {data.gateCondition !== 'always' && (
+            <div className="property-group">
+              <label>Threshold</label>
+              <input
+                type="number"
+                value={data.gateThreshold ?? 0}
+                min={0}
+                onChange={(e) => handleChange('gateThreshold', parseInt(e.target.value) || 0)}
+              />
+            </div>
+          )}
+          <div className="property-group info">
+            <span>🚪 {
+              data.gateCondition === 'always' ? 'Always open' :
+              data.gateCondition === 'if_above' ? `Open if > ${data.gateThreshold}` :
+              `Open if < ${data.gateThreshold}`
+            }</span>
+          </div>
+        </>
+      )}
+
       <div className="property-group">
         <label>Active</label>
         <select
@@ -99,6 +133,25 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
           <option value="true">Yes</option>
           <option value="false">No</option>
         </select>
+      </div>
+
+      <div className="property-group">
+        <label>Probability (0-100%)</label>
+        <div className="probability-input">
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={data.probability ?? 100}
+            onChange={(e) => handleChange('probability', parseInt(e.target.value))}
+          />
+          <span className="probability-value">{data.probability ?? 100}%</span>
+        </div>
+        {(data.probability ?? 100) < 100 && (
+          <div className="property-group info">
+            <span>🎲 {data.probability}% chance per tick</span>
+          </div>
+        )}
       </div>
     </div>
   );

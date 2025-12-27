@@ -105,6 +105,9 @@ interface SimulatorState {
   
   // Templates
   loadTemplate: (templateId: string) => void;
+  
+  // Export stats
+  exportStatsToCSV: () => void;
 }
 
 let nodeIdCounter = 1;
@@ -184,6 +187,9 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         isActive: defaults.isActive ?? true,
         inputRatio: defaults.inputRatio ?? 1,
         outputRatio: defaults.outputRatio ?? 1,
+        probability: defaults.probability ?? 100,
+        gateCondition: defaults.gateCondition ?? 'always',
+        gateThreshold: defaults.gateThreshold ?? 0,
       },
     };
 
@@ -263,10 +269,18 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     // Create a map for quick lookup
     const nodeMap = new Map(nodes.map((n) => [n.id, { ...n, data: { ...n.data } }]));
 
-    // Phase 1: Sources produce resources
+    // Helper function to check probability
+    const checkProbability = (prob: number): boolean => {
+      return Math.random() * 100 < prob;
+    };
+
+    // Phase 1: Sources produce resources (with probability check)
     for (const node of nodeMap.values()) {
       if (node.data.nodeType === 'source' && node.data.isActive) {
-        node.data.resources += node.data.productionRate;
+        const prob = node.data.probability ?? 100;
+        if (checkProbability(prob)) {
+          node.data.resources += node.data.productionRate;
+        }
       }
     }
 
@@ -276,6 +290,20 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       const target = nodeMap.get(edge.target);
 
       if (!source || !target || !source.data.isActive) continue;
+      
+      // Check source probability for transfer
+      const prob = source.data.probability ?? 100;
+      if (!checkProbability(prob) && source.data.nodeType !== 'source') continue;
+      
+      // Check gate condition if source is a gate
+      if (source.data.nodeType === 'gate') {
+        const condition = source.data.gateCondition ?? 'always';
+        const threshold = source.data.gateThreshold ?? 0;
+        const resources = source.data.resources;
+        
+        if (condition === 'if_above' && resources <= threshold) continue;
+        if (condition === 'if_below' && resources >= threshold) continue;
+      }
 
       const flowRate = (edge.data as { flowRate?: number })?.flowRate ?? 1;
 
@@ -660,5 +688,49 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       history: [],
       historyIndex: -1,
     });
+  },
+
+  // Export statistics to CSV
+  exportStatsToCSV: () => {
+    const { resourceHistory, nodes } = get();
+    
+    if (resourceHistory.length === 0) {
+      alert('No simulation data to export. Run the simulation first!');
+      return;
+    }
+    
+    // Get node labels for header
+    const nodeLabels: Record<string, string> = {};
+    nodes.forEach((node) => {
+      nodeLabels[node.id] = node.data.label;
+    });
+    
+    // Get all node IDs from history
+    const nodeIds = Object.keys(resourceHistory[0]).filter(k => k !== 'tick');
+    
+    // Build CSV header
+    const header = ['Tick', ...nodeIds.map(id => nodeLabels[id] || id)].join(',');
+    
+    // Build CSV rows
+    const rows = resourceHistory.map(entry => {
+      const values = [entry.tick.toString()];
+      nodeIds.forEach(id => {
+        values.push((entry[id] ?? 0).toString());
+      });
+      return values.join(',');
+    });
+    
+    const csv = [header, ...rows].join('\n');
+    
+    // Download CSV
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `simulation_stats_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   },
 }));

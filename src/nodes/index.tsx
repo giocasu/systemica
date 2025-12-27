@@ -56,10 +56,24 @@ export const ConverterNode = memo(({ data, selected }: CustomNodeProps) => (
   </div>
 ));
 
-// Gate Node - controls flow
-export const GateNode = memo(({ data, selected }: CustomNodeProps) => (
-  <BaseNode data={data} selected={selected} className="node-gate" />
-));
+// Gate Node - controls flow with conditions
+export const GateNode = memo(({ data, selected }: CustomNodeProps) => {
+  const conditionLabel = data.gateCondition === 'always' 
+    ? '🚪 Open' 
+    : data.gateCondition === 'if_above' 
+      ? `🚪 >${data.gateThreshold}` 
+      : `🚪 <${data.gateThreshold}`;
+  
+  return (
+    <div className={`custom-node node-gate ${selected ? 'selected' : ''}`}>
+      <Handle type="target" position={Position.Left} />
+      <div className="node-label">{data.label}</div>
+      <div className="node-value">{data.resources}</div>
+      <div className="node-condition">{conditionLabel}</div>
+      <Handle type="source" position={Position.Right} />
+    </div>
+  );
+});
 
 // Export all node types for React Flow
 export const nodeTypes = {
