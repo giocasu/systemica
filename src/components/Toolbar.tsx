@@ -67,7 +67,7 @@ export function Toolbar() {
   return (
     <header className="toolbar">
       <div className="brand">
-        <img src="/logo.svg" alt="Systemica" className="brand-logo" />
+        <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="Systemica" className="brand-logo" />
         <h1>Systemica</h1>
       </div>
       
