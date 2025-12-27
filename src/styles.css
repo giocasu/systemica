@@ -59,6 +59,8 @@ body {
   border-bottom: 1px solid #0f3460;
   flex-wrap: wrap;
   min-height: 50px;
+  position: relative;
+  z-index: 1100;
 }
 
 .toolbar h1 {
