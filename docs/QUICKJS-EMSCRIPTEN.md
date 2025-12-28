@@ -10,7 +10,7 @@
 
 ## Perché lo usiamo?
 
-Nel Game Economy Simulator, gli utenti possono scrivere **script JavaScript custom** per definire comportamenti dinamici dei nodi (es. production rate che varia nel tempo).
+In Systemica, gli utenti possono scrivere **script JavaScript custom** per definire comportamenti dinamici dei nodi (es. production rate che varia nel tempo).
 
 ### Il Problema della Sicurezza
 

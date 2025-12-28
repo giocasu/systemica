@@ -1,4 +1,4 @@
-# 🎮 Game Economy Simulator - Manuale d'Uso
+# ⚙️ Systemica - Manuale d'Uso
 
 Un simulatore visuale di economie di gioco ispirato a **Machinations**, progettato per modellare e testare sistemi Producer-Consumer nei videogiochi.
 
@@ -25,7 +25,7 @@ Un simulatore visuale di economie di gioco ispirato a **Machinations**, progetta
 
 ## 🎯 Introduzione
 
-Game Economy Simulator ti permette di creare diagrammi interattivi che simulano il flusso di risorse in un sistema di gioco. È ideale per:
+Systemica ti permette di creare diagrammi interattivi che simulano il flusso di risorse in un sistema di gioco. È ideale per:
 
 - **Game Designer**: Prototipare meccaniche economiche
 - **Bilanciamento**: Testare equilibrio del sistema
@@ -64,7 +64,7 @@ npm run dev
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  🎮 Game Economy Simulator    [▶️][⏭️][🔄][🏃⎯⎯●⎯⎯] [↩️][↪️]...   │  ← Toolbar
+│  ⚙️ Systemica                [▶️][⏭️][🔄][🏃⎯⎯●⎯⎯] [↩️][↪️]...   │  ← Toolbar
 ├─────────────────────────────────────────────────────────────────┤
 │                                                    ┌──────────┐ │
 │                                                    │Properties│ │
@@ -299,6 +299,9 @@ I nodi Source possono usare formule invece di un rate fisso. Vedi [Formule Custo
 ## 📋 Template Predefiniti
 
 Clicca su **📋 Templates** per caricare scenari pronti:
+
+### 🚀 Starter
+Setup minimale: Source → Pool → Drain.
 
 ### 🗡️ Loot System
 Simula drop di loot dai nemici verso l'inventario del giocatore.
@@ -616,4 +619,4 @@ Tipico dei mobile games:
 
 ---
 
-*Game Economy Simulator v0.8.0 - Creato per game designers e sviluppatori*
+*Systemica v0.11.0 - Creato per game designers e sviluppatori*

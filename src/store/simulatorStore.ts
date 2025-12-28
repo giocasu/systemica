@@ -208,6 +208,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         lastProduced: defaults.lastProduced ?? 0,
         lastReceived: defaults.lastReceived ?? 0,
         lastConverted: defaults.lastConverted ?? 0,
+        lastSent: defaults.lastSent ?? 0,
       },
     };
 
@@ -287,6 +288,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     // Create a map for quick lookup
     const nodeMap = new Map(nodes.map((n) => [n.id, { ...n, data: { ...n.data } }]));
     for (const node of nodeMap.values()) {
+      node.data.lastSent = 0;
       if (node.data.nodeType === 'source') {
         node.data.lastProduced = 0;
       }
@@ -453,6 +455,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
               } else {
                 source.data.resources -= actualFlow;
               }
+              source.data.lastSent = (source.data.lastSent ?? 0) + actualFlow;
               
               // Add to target
               if (target.data.nodeType === 'drain') {
@@ -488,6 +491,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
                 } else {
                   source.data.resources -= 1;
                 }
+                source.data.lastSent = (source.data.lastSent ?? 0) + 1;
                 
                 // Add to target
                 if (target.data.nodeType === 'drain') {
@@ -661,6 +665,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
             }
           }
           node.data.lastConverted = actualOutputUsed;
+          node.data.lastSent = (node.data.lastSent ?? 0) + actualOutputUsed;
           
           // Consume input proportionally to actual output
           if (node.data.useFormula) {

@@ -1,4 +1,4 @@
-# Roadmap - Game Economy Simulator
+# Roadmap - Systemica
 
 Ultimo aggiornamento: 27 Dicembre 2025
 

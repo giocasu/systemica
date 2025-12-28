@@ -63,6 +63,40 @@ const createEdge = (
 });
 
 // ============================================
+// TEMPLATE 0: Starter
+// ============================================
+const starterTemplate: GameTemplate = {
+  id: 'starter',
+  name: 'Starter',
+  icon: '🚀',
+  description: 'Minimal setup: Source → Pool → Drain',
+  nodes: [
+    {
+      id: 'starter-source',
+      type: 'source',
+      position: { x: 120, y: 160 },
+      data: createNodeData('Source', 'source', { productionRate: 2, capacity: 10 }),
+    },
+    {
+      id: 'starter-pool',
+      type: 'pool',
+      position: { x: 380, y: 160 },
+      data: createNodeData('Pool', 'pool', { resources: 0, capacity: 25 }),
+    },
+    {
+      id: 'starter-drain',
+      type: 'drain',
+      position: { x: 640, y: 160 },
+      data: createNodeData('Drain', 'drain', {}),
+    },
+  ],
+  edges: [
+    createEdge('starter-e1', 'starter-source', 'starter-pool', 2),
+    createEdge('starter-e2', 'starter-pool', 'starter-drain', 1),
+  ],
+};
+
+// ============================================
 // TEMPLATE 1: Loot System
 // ============================================
 const lootSystemTemplate: GameTemplate = {
@@ -283,6 +317,7 @@ const manaSystemTemplate: GameTemplate = {
 
 // Export all templates
 export const templates: GameTemplate[] = [
+  starterTemplate,
   lootSystemTemplate,
   energyRegenTemplate,
   craftingTemplate,

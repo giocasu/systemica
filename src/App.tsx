@@ -49,6 +49,7 @@ function Flow() {
     copySelected,
     paste,
     loadState,
+    loadTemplate,
   } = useSimulatorStore();
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -75,11 +76,13 @@ function Flow() {
       const savedState = loadFromLocalStorage();
       if (savedState && savedState.nodes.length > 0) {
         loadState(savedState.nodes, savedState.edges);
+      } else {
+        loadTemplate('starter');
       }
     };
 
     loadInitialState();
-  }, [loadState]);
+  }, [loadState, loadTemplate]);
 
   // Auto-save to localStorage whenever nodes or edges change
   useEffect(() => {

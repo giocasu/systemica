@@ -29,6 +29,7 @@ export const SourceNode = memo(({ data, selected }: CustomNodeProps) => {
   const totalProduced = data.totalProduced ?? 0;
   const isExhausted = maxProd !== -1 && totalProduced >= maxProd;
   const lastProduced = typeof data.lastProduced === 'number' ? data.lastProduced : 0;
+  const lastSent = typeof data.lastSent === 'number' ? data.lastSent : 0;
   const activeClass = lastProduced > 0 ? 'source-active' : '';
   const modePrefix =
     mode === 'script'
@@ -46,7 +47,9 @@ export const SourceNode = memo(({ data, selected }: CustomNodeProps) => {
         <div className="node-rate">{formatResources(totalProduced)}/{maxProd}</div>
       )}
       {!isExhausted && lastProduced > 0 ? (
-        <div className="node-rate">{modePrefix} +{formatResources(lastProduced)}/tick</div>
+        <div className="node-rate">
+          {modePrefix} +{formatResources(lastProduced)}/tick{lastSent > 0 ? ` (out ${formatResources(lastSent)})` : ''}
+        </div>
       ) : !isExhausted && mode === 'script' ? (
         <div className="node-rate">📜 script</div>
       ) : !isExhausted && mode === 'formula' && data.formula ? (
@@ -62,6 +65,8 @@ export const SourceNode = memo(({ data, selected }: CustomNodeProps) => {
 // Pool Node - stores resources
 export const PoolNode = memo(({ data, selected }: CustomNodeProps) => {
   const lastReceived = typeof data.lastReceived === 'number' ? data.lastReceived : 0;
+  const lastSent = typeof data.lastSent === 'number' ? data.lastSent : 0;
+  const delta = lastReceived - lastSent;
   const activeClass = lastReceived > 0 ? 'pool-active' : '';
   return (
     <div className={`custom-node node-pool ${activeClass} ${selected ? 'selected' : ''}`}>
@@ -69,7 +74,11 @@ export const PoolNode = memo(({ data, selected }: CustomNodeProps) => {
       <div className="node-label">{data.label}</div>
       <div className="node-value">{formatResources(data.resources)}</div>
       {data.capacity > 0 && <div className="node-rate">max: {formatResources(data.capacity)}</div>}
-      {lastReceived > 0 && <div className="node-rate">+{formatResources(lastReceived)}/tick</div>}
+      {(lastReceived > 0 || lastSent > 0) && (
+        <div className="node-rate">
+          Δ {delta >= 0 ? '+' : ''}{formatResources(delta)}/tick (in {formatResources(lastReceived)} / out {formatResources(lastSent)})
+        </div>
+      )}
       <Handle type="source" position={Position.Right} />
     </div>
   );

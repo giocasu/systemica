@@ -51,6 +51,8 @@ export interface NodeData extends Record<string, unknown> {
   lastReceived?: number;
   // Converter: output in the last tick (for UI feedback)
   lastConverted?: number;
+  // Generic: sent out in the last tick (for UI feedback)
+  lastSent?: number;
 }
 
 // Default values for each node type
@@ -74,6 +76,7 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     maxProduction: -1,
     totalProduced: 0,
     lastProduced: 0,
+    lastSent: 0,
   },
   pool: {
     resources: 0,
@@ -94,6 +97,7 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     maxProduction: -1,
     totalProduced: 0,
     lastReceived: 0,
+    lastSent: 0,
   },
   drain: {
     resources: 0,
@@ -114,6 +118,7 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     maxProduction: -1,
     totalProduced: 0,
     lastConsumed: 0,
+    lastSent: 0,
   },
   converter: {
     resources: 0,
@@ -134,6 +139,7 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     maxProduction: -1,
     totalProduced: 0,
     lastConverted: 0,
+    lastSent: 0,
   },
   gate: {
     resources: 0,
@@ -155,6 +161,7 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     lastDistributionIndex: 0,
     maxProduction: -1,
     totalProduced: 0,
+    lastSent: 0,
   },
 };
 

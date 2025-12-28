@@ -1,4 +1,4 @@
-# 🎮 Game Economy Simulator - User Manual
+# ⚙️ Systemica - User Manual
 
 A visual game economy simulator inspired by **Machinations**, designed to model and test Producer-Consumer systems in video games.
 
@@ -25,7 +25,7 @@ A visual game economy simulator inspired by **Machinations**, designed to model 
 
 ## 🎯 Introduction
 
-Game Economy Simulator lets you create interactive diagrams that simulate resource flow in game systems. It's ideal for:
+Systemica lets you create interactive diagrams that simulate resource flow in game systems. It's ideal for:
 
 - **Game Designers**: Prototype economic mechanics
 - **Balancing**: Test system equilibrium
@@ -64,7 +64,7 @@ npm run dev
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  🎮 Game Economy Simulator    [▶️][⏭️][🔄][🏃⎯⎯●⎯⎯] [↩️][↪️]...   │  ← Toolbar
+│  ⚙️ Systemica                [▶️][⏭️][🔄][🏃⎯⎯●⎯⎯] [↩️][↪️]...   │  ← Toolbar
 ├─────────────────────────────────────────────────────────────────┤
 │                                                    ┌──────────┐ │
 │                                                    │Properties│ │
@@ -300,6 +300,9 @@ Source nodes can use formulas instead of a fixed rate. See [Custom Formulas](#-c
 ## 📋 Pre-built Templates
 
 Click **📋 Templates** to load ready-made scenarios:
+
+### 🚀 Starter
+Minimal setup: Source → Pool → Drain.
 
 ### 🗡️ Loot System
 Simulates loot drops from enemies to player inventory.
@@ -607,9 +610,4 @@ Typical for mobile games:
 ## 📚 References
 
 - [Machinations](https://machinations.io/) - Inspiration tool
-- [Game Mechanics: Advanced Game Design](https://www.amazon.com/Game-Mechanics-Advanced-Design-Voices/dp/0321820274) - Book by E. Adams and J. Dormans
 - [React Flow](https://reactflow.dev/) - Diagram library
-
----
-
-*Game Economy Simulator v0.8.0 - Built for game designers and developers*
