@@ -315,7 +315,7 @@ Sistema magico con rigenerazione mana e consumo spell.
 
 ## 📐 Formule Custom
 
-Per i nodi **Source**, puoi usare formule invece di un rate fisso.
+Per i nodi **Source** e **Converter**, puoi usare formule invece di un valore fisso.
 
 ### Attivazione
 
@@ -332,6 +332,7 @@ Per i nodi **Source**, puoi usare formule invece di un rate fisso.
 | `capacity` | Capacità del buffer (-1 = illimitata) |
 | `totalProduced` | Totale risorse prodotte dall'inizio |
 | `produced` | Alias di totalProduced |
+| `input` | (Solo Converter) Risorse disponibili da processare |
 
 ### Funzioni Disponibili
 
@@ -345,7 +346,9 @@ Per i nodi **Source**, puoi usare formule invece di un rate fisso.
 | `random()` | Casuale 0-1 | `random() * 10` |
 | `sqrt(x)` | Radice quadrata | `sqrt(resources)` |
 | `pow(x, y)` | Potenza | `pow(2, tick)` |
-| `sin(x)`, `cos(x)` | Trigonometriche | `5 + sin(tick) * 3` |
+| `sin(x)`, `cos(x)`, `tan(x)` | Trigonometriche | `5 + sin(tick) * 3` |
+| `log(x)` | Log naturale | `log(resources + 1)` |
+| `exp(x)` | Esponenziale | `exp(tick * 0.01)` |
 | `abs(x)` | Valore assoluto | `abs(resources - 50)` |
 
 ### Esempi di Formule
@@ -369,7 +372,7 @@ max(0, 10 - totalProduced * 0.1)  // Rallenta dopo molte produzioni
 
 ---
 
-## � Script Personalizzati (Avanzato)
+## 📜 Script Personalizzati (Avanzato)
 
 Per logiche complesse oltre le semplici formule, i nodi **Source** e **Converter** supportano script JavaScript eseguiti in una sandbox sicura (QuickJS WebAssembly).
 
@@ -379,6 +382,10 @@ Per logiche complesse oltre le semplici formule, i nodi **Source** e **Converter
 2. Nel pannello proprietà, clicca il pulsante modalità **📜 Script**
 3. Inserisci il tuo codice JavaScript
 4. Lo script deve restituire un numero
+
+Note:
+- I valori restituiti vengono clampati a `>= 0` e arrotondati per difetto a intero.
+- Usa funzioni matematiche “globali” (`min()`, `sin()`, ecc.): non esiste l’oggetto `Math` nella sandbox.
 
 ### Caratteristiche di Sicurezza
 
@@ -394,10 +401,15 @@ Per logiche complesse oltre le semplici formule, i nodi **Source** e **Converter
 |-----------|-------------|
 | `input` | Risorse ricevute (Converter) o risorse attuali (Source) |
 | `resources` | Risorse attuali nel nodo (buffer per Source) |
-| `capacity` | Capacità del nodo (-1 significa illimitata) |
+| `capacity` | Capacità del nodo (Infinity se illimitata) |
+| `capacityRaw` | Capacità raw (-1 se illimitata) |
 | `tick` | Tick corrente della simulazione |
-| `totalProduced` | Totale risorse prodotte dall'inizio (solo Source) |
-| `produced` | Alias di totalProduced (solo Source) |
+| `buffer` | (Solo Source) Alias di `resources` |
+| `bufferCapacity` | (Solo Source) Alias di `capacity` |
+| `bufferCapacityRaw` | (Solo Source) Alias di `capacityRaw` |
+| `totalProduced` / `produced` | (Solo Source) Totale prodotto finora |
+| `maxProduction` / `maxTotalProduction` | (Solo Source) Max produzione totale (Infinity se illimitata) |
+| `maxProductionRaw` / `maxTotalProductionRaw` | (Solo Source) Max produzione raw (-1 se illimitata) |
 
 ### Funzioni Disponibili
 
@@ -406,7 +418,8 @@ Per logiche complesse oltre le semplici formule, i nodi **Source** e **Converter
 | `getNode(id)` | Ottiene dati di un altro nodo: `{ resources, capacity }` |
 | `state` | Oggetto persistente per salvare valori tra i tick |
 | `min()`, `max()`, `floor()`, `ceil()`, `round()` | Funzioni matematiche |
-| `random()`, `sqrt()`, `pow()`, `sin()`, `cos()`, `abs()` | Funzioni matematiche |
+| `random()`, `sqrt()`, `pow()`, `sin()`, `cos()`, `tan()`, `log()`, `exp()`, `abs()` | Funzioni matematiche |
+| `PI`, `E` | Costanti |
 
 ### Esempi di Script
 
@@ -423,13 +436,13 @@ if (resources < 10) {
 
 ```javascript
 // Produzione ciclica con pattern a onda
-return 3 + Math.round(Math.sin(tick * 0.5) * 2);
+return 3 + round(sin(tick * 0.5) * 2);
 ```
 
 ```javascript
 // Conversione con curva di efficienza
-const efficiency = Math.min(1, input / 10);
-return Math.floor(input * efficiency);
+const efficiency = min(1, input / 10);
+return floor(input * efficiency);
 ```
 
 ```javascript

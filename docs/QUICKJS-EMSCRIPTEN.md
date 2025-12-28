@@ -43,23 +43,24 @@ QuickJS-Emscripten esegue il codice in un **ambiente completamente isolato**:
 
 ```typescript
 // src/utils/scriptRunner.ts
-import { getQuickJS } from 'quickjs-emscripten';
+import { newQuickJSWASMModule } from 'quickjs-emscripten';
 
-let quickJSPromise: Promise<QuickJSWASMModule> | null = null;
+let modulePromise: Promise<QuickJSWASMModule> | null = null;
 
-async function getQuickJSInstance() {
-  if (!quickJSPromise) {
-    quickJSPromise = getQuickJS(); // Carica WASM solo quando serve
+async function getQuickJS() {
+  if (!modulePromise) {
+    modulePromise = newQuickJSWASMModule(); // Carica WASM solo quando serve
   }
-  return quickJSPromise;
+  return modulePromise;
 }
 ```
 
 ### 2. Creazione del contesto sicuro
 
 ```typescript
-const QuickJS = await getQuickJSInstance();
-const vm = QuickJS.newContext(); // Nuovo ambiente isolato
+const QuickJS = await getQuickJS();
+const runtime = QuickJS.newRuntime(); // runtime isolato + limiti
+const vm = runtime.newContext();      // contesto isolato
 ```
 
 ### 3. Esposizione di variabili controllate
@@ -67,26 +68,27 @@ const vm = QuickJS.newContext(); // Nuovo ambiente isolato
 Solo le variabili che decidiamo noi sono accessibili allo script:
 
 ```typescript
-// Esponiamo solo ciò che serve
-vm.setProp(vm.global, "value", vm.newNumber(context.value));
+vm.setProp(vm.global, "input", vm.newNumber(context.input));
+vm.setProp(vm.global, "resources", vm.newNumber(context.resources));
+vm.setProp(vm.global, "capacity", vm.newNumber(context.capacity === -1 ? Infinity : context.capacity));
 vm.setProp(vm.global, "tick", vm.newNumber(context.tick));
-vm.setProp(vm.global, "total_produced", vm.newNumber(context.total_produced));
-vm.setProp(vm.global, "total_consumed", vm.newNumber(context.total_consumed));
 
-// Math object per funzioni matematiche
-const mathHandle = vm.newObject();
-vm.setProp(mathHandle, "sin", vm.newFunction("sin", (x) => ...));
-vm.setProp(mathHandle, "random", vm.newFunction("random", () => ...));
-// ... altre funzioni Math
-vm.setProp(vm.global, "Math", mathHandle);
+// Funzioni matematiche (globali, non via Math.*)
+vm.setProp(vm.global, "min", vm.newFunction("min", (...args) => ...));
+vm.setProp(vm.global, "sin", vm.newFunction("sin", (x) => ...));
+vm.setProp(vm.global, "random", vm.newFunction("random", () => ...));
+
+// Costanti
+vm.setProp(vm.global, "PI", vm.newNumber(Math.PI));
+vm.setProp(vm.global, "E", vm.newNumber(Math.E));
+
+// state e getNode sono esposti come API controllate
 ```
 
 ### 4. Esecuzione con timeout
 
 ```typescript
-const result = vm.evalCode(userScript, "script.js", {
-  timeout: 1000  // Max 1 secondo di esecuzione
-});
+const result = vm.evalCode(userScript);
 ```
 
 ### 5. Cleanup della memoria
@@ -102,37 +104,51 @@ vm.dispose();
 
 | Variabile | Tipo | Descrizione |
 |-----------|------|-------------|
-| `value` | number | Valore base del nodo (productionRate, capacity, ecc.) |
+| `input` | number | Risorse disponibili da processare (Converter) / risorse correnti (Source) |
+| `resources` | number | Risorse correnti del nodo |
+| `capacity` | number | Capacità del nodo (`-1` = illimitata, esposta come `Infinity`) |
+| `capacityRaw` | number | Capacità raw (`-1` = illimitata) |
+| `buffer` | number | (Solo Source) Alias di `resources` |
+| `bufferCapacity` | number | (Solo Source) Alias di `capacity` |
+| `bufferCapacityRaw` | number | (Solo Source) Alias di `capacityRaw` |
+| `totalProduced` / `produced` | number | (Solo Source) Totale prodotto finora |
+| `maxProduction` / `maxTotalProduction` | number | (Solo Source) Max produzione totale (`-1` = illimitata, esposta come `Infinity`) |
+| `maxProductionRaw` / `maxTotalProductionRaw` | number | (Solo Source) Max produzione raw (`-1` = illimitata) |
 | `tick` | number | Tick corrente della simulazione (0, 1, 2, ...) |
-| `total_produced` | number | Totale risorse prodotte dal nodo |
-| `total_consumed` | number | Totale risorse consumate dal nodo |
-| `Math` | object | Funzioni matematiche (sin, cos, random, floor, ecc.) |
+| `state` | object | Oggetto persistente tra tick (solo valori numerici) |
+| `getNode(id)` | function | Legge `{ resources, capacity }` di un altro nodo |
 
 ## Esempi di script
 
 ### Production rate crescente
 ```javascript
 // Aumenta di 1 ogni 10 tick
-return value + Math.floor(tick / 10);
+return input + floor(tick / 10);
 ```
 
 ### Oscillazione sinusoidale
 ```javascript
 // Varia tra 5 e 15
-return 10 + Math.sin(tick * 0.1) * 5;
+return 10 + sin(tick * 0.1) * 5;
 ```
 
 ### Produzione random
 ```javascript
 // Tra 50% e 150% del valore base
-return value * (0.5 + Math.random());
+return input * (0.5 + random());
 ```
 
 ### Bonus basato sulla produzione totale
 ```javascript
-// +1% per ogni 100 risorse prodotte
-return value * (1 + total_produced / 10000);
+// Stato persistente (es. contatore)
+state.count = (state.count || 0) + 1;
+return state.count;
 ```
+
+## Note sul valore restituito
+
+- Lo script deve restituire un numero.
+- Il valore viene clampato a `>= 0` e arrotondato per difetto a intero.
 
 ## Vantaggi di QuickJS-Emscripten
 

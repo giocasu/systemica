@@ -21,6 +21,7 @@ export function DraggableToolbar({
   const { 
     isRunning, 
     toggleRunning, 
+    executeScriptsAsync,
     step, 
     reset,
     newProject,
@@ -88,6 +89,18 @@ export function DraggableToolbar({
     }
   };
 
+  const handleToggleRunning = async () => {
+    if (!isRunning) {
+      await executeScriptsAsync();
+    }
+    toggleRunning();
+  };
+
+  const handleStep = async () => {
+    await executeScriptsAsync();
+    step();
+  };
+
   return (
     <Draggable
       handle=".toolbar-header"
@@ -121,10 +134,10 @@ export function DraggableToolbar({
             <div className="toolbar-section">
               <div className="section-label">Simulation</div>
               <div className="toolbar-buttons">
-                <button onClick={toggleRunning} className={isRunning ? 'active' : ''} title={isRunning ? 'Pause' : 'Play'}>
+                <button onClick={handleToggleRunning} className={isRunning ? 'active' : ''} title={isRunning ? 'Pause' : 'Play'}>
                   {isRunning ? '⏸️' : '▶️'}
                 </button>
-                <button onClick={step} title="Step">⏭️</button>
+                <button onClick={handleStep} title="Step">⏭️</button>
                 <button onClick={reset} title="Reset">🔄</button>
               </div>
               <div className="speed-control">

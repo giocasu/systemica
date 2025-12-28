@@ -239,8 +239,14 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
           {formulaValid && <span className="formula-valid">✅ Formula valid!</span>}
           <div className="formula-help">
             <small>⚠️ Only expressions, NO "return" or ";"</small>
-            <small>Variables: {data.nodeType === 'converter' ? 'input, ' : ''}resources, tick, capacity</small>
-            <small>Functions: min, max, floor, ceil, round, random, sqrt, pow</small>
+            <small>
+              Variables:{' '}
+              {data.nodeType === 'converter' ? 'input, ' : ''}
+              resources, tick, capacity
+              {data.nodeType === 'source' ? ', totalProduced (alias: produced)' : ''}
+            </small>
+            <small>Functions: min, max, floor, ceil, round, abs, sqrt, pow, sin, cos, tan, log, exp, random</small>
+            <small>Constants: PI, E</small>
           </div>
         </div>
       )}
@@ -277,22 +283,44 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
           </button>
           {scriptError && <span className="script-error">❌ {scriptError}</span>}
           {scriptValid && <span className="script-valid">✅ Script valid!</span>}
+          {!!data.scriptState?.lastError && (
+            <span className="script-error">⚠️ Runtime: {String(data.scriptState.lastError)}</span>
+          )}
+          {typeof (data.scriptState as { lastOutput?: unknown } | undefined)?.lastOutput === 'number' && (
+            <span className="script-valid">
+              ℹ️ Last output: {(data.scriptState as { lastOutput: number }).lastOutput}
+            </span>
+          )}
           <div className="script-help">
             <details>
               <summary>📖 Script API Reference</summary>
               <div className="script-api">
                 <strong>Variables:</strong>
                 <ul>
-                  <li><code>input</code> - Resources to process{data.nodeType === 'converter' ? ' (accumulated)' : ''}</li>
-                  <li><code>resources</code> - Current node resources</li>
-                  <li><code>capacity</code> - Node capacity</li>
+                  <li>
+                    <code>input</code> - Resources to process{data.nodeType === 'converter' ? ' (accumulated)' : ' (same as resources for Source)'}
+                  </li>
+                  <li><code>resources</code> - Current node resources (Source buffer)</li>
+                  <li><code>capacity</code> - Node capacity (Infinity if unlimited)</li>
+                  <li><code>capacityRaw</code> - Raw capacity (-1 if unlimited)</li>
                   <li><code>tick</code> - Current simulation tick</li>
+                  {data.nodeType === 'source' && (
+                    <>
+                      <li><code>buffer</code> - Alias for <code>resources</code></li>
+                      <li><code>bufferCapacity</code> - Alias for <code>capacity</code></li>
+                      <li><code>bufferCapacityRaw</code> - Alias for <code>capacityRaw</code></li>
+                      <li><code>totalProduced</code> / <code>produced</code> - Total produced so far</li>
+                      <li><code>maxProduction</code> / <code>maxTotalProduction</code> - Max total production (Infinity if unlimited)</li>
+                      <li><code>maxProductionRaw</code> / <code>maxTotalProductionRaw</code> - Raw max production (-1 if unlimited)</li>
+                    </>
+                  )}
                 </ul>
                 <strong>Functions:</strong>
                 <ul>
                   <li><code>getNode(id)</code> - Get another node's data</li>
                   <li><code>min, max, floor, ceil, round, abs, sqrt, pow</code></li>
                   <li><code>sin, cos, tan, log, exp, random</code></li>
+                  <li><code>PI</code>, <code>E</code></li>
                 </ul>
                 <strong>State (persists between ticks):</strong>
                 <ul>

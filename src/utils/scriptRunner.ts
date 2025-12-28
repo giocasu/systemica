@@ -42,6 +42,8 @@ export interface ScriptContext {
   input: number;          // Resources available (for converters: accumulated input)
   resources: number;      // Current resources in the node
   capacity: number;       // Node capacity (-1 = unlimited)
+  totalProduced?: number; // (Source only) Total produced so far
+  maxProduction?: number; // (Source only) Max total production (-1 = unlimited)
   
   // Simulation state
   tick: number;           // Current simulation tick
@@ -98,7 +100,21 @@ export async function executeScript(
       vm.setProp(vm.global, "input", vm.newNumber(context.input));
       vm.setProp(vm.global, "resources", vm.newNumber(context.resources));
       vm.setProp(vm.global, "capacity", vm.newNumber(context.capacity === -1 ? Infinity : context.capacity));
+      vm.setProp(vm.global, "capacityRaw", vm.newNumber(context.capacity));
       vm.setProp(vm.global, "tick", vm.newNumber(context.tick));
+
+      // Source-related aliases (safe to expose for all nodes)
+      vm.setProp(vm.global, "buffer", vm.newNumber(context.resources));
+      vm.setProp(vm.global, "bufferCapacity", vm.newNumber(context.capacity === -1 ? Infinity : context.capacity));
+      vm.setProp(vm.global, "bufferCapacityRaw", vm.newNumber(context.capacity));
+      vm.setProp(vm.global, "totalProduced", vm.newNumber(context.totalProduced ?? 0));
+      vm.setProp(vm.global, "produced", vm.newNumber(context.totalProduced ?? 0));
+      const maxProd = context.maxProduction ?? -1;
+      const maxProdValue = maxProd === -1 ? Infinity : maxProd;
+      vm.setProp(vm.global, "maxProduction", vm.newNumber(maxProdValue));
+      vm.setProp(vm.global, "maxTotalProduction", vm.newNumber(maxProdValue));
+      vm.setProp(vm.global, "maxProductionRaw", vm.newNumber(maxProd));
+      vm.setProp(vm.global, "maxTotalProductionRaw", vm.newNumber(maxProd));
       
       // Expose state object (only numeric values)
       const stateObj = vm.newObject();
@@ -233,6 +249,8 @@ export async function validateScript(script: string): Promise<string | null> {
     input: 10,
     resources: 10,
     capacity: 100,
+    totalProduced: 5,
+    maxProduction: 100,
     tick: 1,
     getNode: () => ({ resources: 50, capacity: 100 }),
     state: {},

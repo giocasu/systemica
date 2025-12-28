@@ -347,7 +347,9 @@ For **Source** and **Converter** nodes, you can use formulas instead of fixed ra
 | `random()` | Random 0-1 | `random() * 10` |
 | `sqrt(x)` | Square root | `sqrt(resources)` |
 | `pow(x, y)` | Power | `pow(2, tick)` |
-| `sin(x)`, `cos(x)` | Trigonometric | `5 + sin(tick) * 3` |
+| `sin(x)`, `cos(x)`, `tan(x)` | Trigonometric | `5 + sin(tick) * 3` |
+| `log(x)` | Natural log | `log(resources + 1)` |
+| `exp(x)` | Exponential | `exp(tick * 0.01)` |
 | `abs(x)` | Absolute value | `abs(resources - 50)` |
 
 ### Formula Examples
@@ -366,7 +368,7 @@ pow(1.1, tick)           // Exponential growth
 
 ---
 
-## � Custom Scripts (Advanced)
+## 📜 Custom Scripts (Advanced)
 
 For complex logic beyond simple formulas, **Source** and **Converter** nodes support JavaScript scripts executed in a secure sandbox (QuickJS WebAssembly).
 
@@ -376,6 +378,10 @@ For complex logic beyond simple formulas, **Source** and **Converter** nodes sup
 2. In the properties panel, click the **📜 Script** mode button
 3. Enter your JavaScript code
 4. The script must return a number
+
+Notes:
+- Returned values are clamped to `>= 0` and rounded down to an integer.
+- Use standalone math helpers like `min()`/`sin()` (there is no `Math` object in the sandbox).
 
 ### Security Features
 
@@ -391,8 +397,15 @@ For complex logic beyond simple formulas, **Source** and **Converter** nodes sup
 |----------|-------------|
 | `input` | Resources received (Converters) or current resources (Sources) |
 | `resources` | Current resources in the node |
-| `capacity` | Node capacity (-1 means unlimited) |
+| `capacity` | Node capacity (Infinity if unlimited) |
+| `capacityRaw` | Raw capacity (-1 if unlimited) |
 | `tick` | Current simulation tick |
+| `buffer` | (Source only) Alias for `resources` |
+| `bufferCapacity` | (Source only) Alias for `capacity` |
+| `bufferCapacityRaw` | (Source only) Alias for `capacityRaw` |
+| `totalProduced` / `produced` | (Source only) Total produced so far |
+| `maxProduction` / `maxTotalProduction` | (Source only) Max total production (Infinity if unlimited) |
+| `maxProductionRaw` / `maxTotalProductionRaw` | (Source only) Raw max production (-1 if unlimited) |
 
 ### Available Functions
 
@@ -401,7 +414,8 @@ For complex logic beyond simple formulas, **Source** and **Converter** nodes sup
 | `getNode(id)` | Get another node's data: `{ resources, capacity }` |
 | `state` | Persistent object to store values between ticks |
 | `min()`, `max()`, `floor()`, `ceil()`, `round()` | Math functions |
-| `random()`, `sqrt()`, `pow()`, `sin()`, `cos()`, `abs()` | Math functions |
+| `random()`, `sqrt()`, `pow()`, `sin()`, `cos()`, `tan()`, `log()`, `exp()`, `abs()` | Math functions |
+| `PI`, `E` | Constants |
 
 ### Script Examples
 
@@ -418,13 +432,13 @@ if (resources < 10) {
 
 ```javascript
 // Cyclic production with wave pattern
-return 3 + Math.round(Math.sin(tick * 0.5) * 2);
+return 3 + round(sin(tick * 0.5) * 2);
 ```
 
 ```javascript
 // Conversion with efficiency curve
-const efficiency = Math.min(1, input / 10);
-return Math.floor(input * efficiency);
+const efficiency = min(1, input / 10);
+return floor(input * efficiency);
 ```
 
 ```javascript

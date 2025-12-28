@@ -314,28 +314,19 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       return node.data.productionRate;
     };
 
-    // Phase 1: Sources produce resources into their buffer (with probability check)
-    // resources = current buffer (like pool)
-    // maxProduction = max total that can ever be produced (-1 = infinite)
-    // totalProduced = counter of total produced so far
-    // Track how much each source produced THIS tick
+    // Phase 1: Compute how much each Source produces THIS tick (with probability + maxProduction)
+    // Note: produced resources are available for transfer in Phase 2; buffer capacity only limits leftovers.
     const sourceProductionThisTick = new Map<string, number>();
     
     for (const node of nodeMap.values()) {
       if (node.data.nodeType === 'source' && node.data.isActive) {
         const maxProd = node.data.maxProduction ?? -1;
         const totalProduced = node.data.totalProduced ?? 0;
-        const capacity = node.data.capacity ?? -1;
         
         // Check if source is exhausted (max production reached)
         if (maxProd !== -1 && totalProduced >= maxProd) {
           sourceProductionThisTick.set(node.id, 0);
           continue; // Source exhausted, don't produce
-        }
-        // If buffer is full, don't produce
-        if (capacity !== -1 && node.data.resources >= capacity) {
-          sourceProductionThisTick.set(node.id, 0);
-          continue;
         }
         
         const prob = node.data.probability ?? 100;
@@ -351,21 +342,6 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
             const remaining = maxProd - totalProduced;
             production = Math.min(production, remaining);
           }
-
-          // Limit production to not exceed buffer capacity (if any)
-          if (capacity !== -1) {
-            const remainingSpace = Math.max(0, capacity - node.data.resources);
-            production = Math.min(production, remainingSpace);
-          }
-          if (production <= 0) {
-            sourceProductionThisTick.set(node.id, 0);
-            continue;
-          }
-          
-          // Add to buffer (resources)
-          node.data.resources += production;
-          // Track total produced
-          node.data.totalProduced = totalProduced + production;
           sourceProductionThisTick.set(node.id, production);
         } else {
           sourceProductionThisTick.set(node.id, 0);
@@ -387,9 +363,11 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       const source = nodeMap.get(sourceId);
       if (!source || !source.data.isActive) continue;
 
+      const isSource = source.data.nodeType === 'source';
+
       // Check source probability for transfer (except sources which always transfer)
       const prob = source.data.probability ?? 100;
-      if (!checkProbability(prob) && source.data.nodeType !== 'source') continue;
+      if (!checkProbability(prob) && !isSource) continue;
 
       // Check gate condition if source is a gate
       if (source.data.nodeType === 'gate') {
@@ -401,16 +379,13 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         if (condition === 'if_below' && resources >= threshold) continue;
       }
 
-      // Calculate total available resources from this source
-      let totalAvailable: number;
+      const productionThisTick = sourceProductionThisTick.get(sourceId) ?? 0;
+      let available = source.data.resources;
       if (source.data.nodeType === 'source') {
-        // Source: distribute from buffer (resources)
-        totalAvailable = source.data.resources;
-      } else {
-        totalAvailable = source.data.resources;
+        available += productionThisTick;
       }
 
-      if (totalAvailable <= 0) continue;
+      if (available <= 0) continue;
 
       // Get distribution mode (default to continuous for backward compatibility)
       const distributionMode = source.data.distributionMode ?? 'continuous';
@@ -439,73 +414,129 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         }
       }
 
-      if (validEdges.length === 0) continue;
-
-      if (distributionMode === 'continuous') {
-        // CONTINUOUS MODE: Split resources equally among all outputs
-        // Each edge gets a fraction of the total, limited by its flowRate
-        const totalFlowRates = validEdges.reduce((sum, e) => sum + e.flowRate, 0);
-        
-        for (const { target, flowRate, targetSpace } of validEdges) {
-          // Proportional distribution based on flowRate
-          const proportion = flowRate / totalFlowRates;
-          const allocated = totalAvailable * proportion;
-          const actualFlow = Math.min(allocated, flowRate, targetSpace);
+      const canTransfer = validEdges.length > 0;
+      if (canTransfer) {
+        if (distributionMode === 'continuous') {
+          // CONTINUOUS MODE: Split resources equally among all outputs
+          // Each edge gets a fraction of the total, limited by its flowRate
+          const totalFlowRates = validEdges.reduce((sum, e) => sum + e.flowRate, 0);
+          const totalAvailable = available;
           
-          if (actualFlow > 0) {
-            // Remove from source buffer
-            source.data.resources -= actualFlow;
+          for (const { target, flowRate, targetSpace } of validEdges) {
+            // Proportional distribution based on flowRate
+            const proportion = flowRate / totalFlowRates;
+            const allocated = totalAvailable * proportion;
+            const actualFlow = Math.min(allocated, flowRate, targetSpace);
             
-            // Add to target (except for drain nodes)
-            if (target.data.nodeType !== 'drain') {
-              target.data.resources += actualFlow;
-            }
-          }
-        }
-      } else {
-        // DISCRETE MODE: Round-robin, one resource unit at a time
-        // Send whole units to one target at a time, rotating through targets
-        let lastIndex = source.data.lastDistributionIndex ?? 0;
-        let remaining = Math.floor(totalAvailable); // Only whole units
-        
-        while (remaining > 0 && validEdges.length > 0) {
-          // Find next valid target (round-robin)
-          let found = false;
-          for (let i = 0; i < validEdges.length; i++) {
-            const idx = (lastIndex + i) % validEdges.length;
-            const { target, flowRate, targetSpace } = validEdges[idx];
-            
-            // Can we send at least 1 unit?
-            const canSend = Math.min(1, flowRate, targetSpace);
-            if (canSend >= 1) {
-              // Remove from source buffer
-              source.data.resources -= 1;
+            if (actualFlow > 0) {
+              // Remove from source
+              if (isSource) {
+                available -= actualFlow;
+              } else {
+                source.data.resources -= actualFlow;
+              }
               
               // Add to target (except for drain nodes)
               if (target.data.nodeType !== 'drain') {
-                target.data.resources += 1;
+                target.data.resources += actualFlow;
               }
-              
-              remaining -= 1;
-              lastIndex = (idx + 1) % validEdges.length;
-              found = true;
-              
-              // Update targetSpace for next iteration
-              validEdges[idx].targetSpace -= 1;
-              if (validEdges[idx].targetSpace <= 0) {
-                validEdges.splice(idx, 1);
-                if (lastIndex > idx) lastIndex--;
-                if (lastIndex >= validEdges.length) lastIndex = 0;
-              }
-              break;
             }
           }
+        } else {
+          // DISCRETE MODE: Round-robin, one resource unit at a time
+          // Send whole units to one target at a time, rotating through targets
+          let lastIndex = source.data.lastDistributionIndex ?? 0;
+          let remaining = Math.floor(available); // Only whole units
           
-          if (!found) break; // No valid targets left
+          while (remaining > 0 && validEdges.length > 0) {
+            // Find next valid target (round-robin)
+            let found = false;
+            for (let i = 0; i < validEdges.length; i++) {
+              const idx = (lastIndex + i) % validEdges.length;
+              const { target, flowRate, targetSpace } = validEdges[idx];
+              
+              // Can we send at least 1 unit?
+              const canSend = Math.min(1, flowRate, targetSpace);
+              if (canSend >= 1) {
+                // Remove from source
+                if (isSource) {
+                  available -= 1;
+                } else {
+                  source.data.resources -= 1;
+                }
+                
+                // Add to target (except for drain nodes)
+                if (target.data.nodeType !== 'drain') {
+                  target.data.resources += 1;
+                }
+                
+                remaining -= 1;
+                lastIndex = (idx + 1) % validEdges.length;
+                found = true;
+                
+                // Update targetSpace for next iteration
+                validEdges[idx].targetSpace -= 1;
+                if (validEdges[idx].targetSpace <= 0) {
+                  validEdges.splice(idx, 1);
+                  if (lastIndex > idx) lastIndex--;
+                  if (lastIndex >= validEdges.length) lastIndex = 0;
+                }
+                break;
+              }
+            }
+            
+            if (!found) break; // No valid targets left
+          }
+          
+          // Save last index for next tick
+          source.data.lastDistributionIndex = lastIndex;
         }
-        
-        // Save last index for next tick
-        source.data.lastDistributionIndex = lastIndex;
+      } else if (!isSource) {
+        continue;
+      }
+
+      // For Sources: buffer capacity limits only leftover resources after transfer
+      if (isSource) {
+        const capacity = source.data.capacity ?? -1;
+        let overflow = 0;
+        if (capacity !== -1 && Number.isFinite(capacity)) {
+          const capped = Math.min(available, capacity);
+          overflow = Math.max(0, available - capped);
+          available = capped;
+        }
+
+        source.data.resources = available;
+
+        // Only count as produced what actually remains in the system (stored or transferred).
+        // Any overflow due to buffer capacity is treated as "not produced".
+        const actualProduced = Math.max(0, productionThisTick - overflow);
+        if (actualProduced > 0) {
+          source.data.totalProduced = (source.data.totalProduced ?? 0) + actualProduced;
+        }
+      }
+    }
+
+    // Finalize Sources without outgoing edges (or without being processed above)
+    for (const node of nodeMap.values()) {
+      if (node.data.nodeType !== 'source' || !node.data.isActive) continue;
+      if (edgesBySource.has(node.id)) continue;
+
+      const productionThisTick = sourceProductionThisTick.get(node.id) ?? 0;
+      if (productionThisTick <= 0) continue;
+
+      let available = node.data.resources + productionThisTick;
+      const capacity = node.data.capacity ?? -1;
+      let overflow = 0;
+      if (capacity !== -1 && Number.isFinite(capacity)) {
+        const capped = Math.min(available, capacity);
+        overflow = Math.max(0, available - capped);
+        available = capped;
+      }
+
+      node.data.resources = available;
+      const actualProduced = Math.max(0, productionThisTick - overflow);
+      if (actualProduced > 0) {
+        node.data.totalProduced = (node.data.totalProduced ?? 0) + actualProduced;
       }
     }
 
@@ -663,6 +694,8 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
             input: node.data.resources,
             resources: node.data.resources,
             capacity: node.data.capacity,
+            totalProduced: node.data.totalProduced,
+            maxProduction: node.data.maxProduction,
             tick: currentTick,
             getNode,
             state: node.data.scriptState || {},
