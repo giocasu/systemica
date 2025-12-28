@@ -120,7 +120,7 @@ Automatically produces resources each tick.
 |----------|-------------|
 | Label | Node name |
 | Buffer | Current resources in buffer (used in formulas) |
-| Buffer Capacity | Maximum buffer size (-1 = unlimited) |
+| Buffer Capacity | Maximum buffer size kept in the buffer (-1 = unlimited) |
 | Max Total Production | Total resources this source can ever produce (-1 = infinite) |
 | Production Rate | Resources produced per tick (supports decimals: 0.1, 0.5, etc.) |
 | Distribution Mode | **Continuous** (split equally) or **Discrete** (round-robin) |
@@ -137,6 +137,10 @@ Automatically produces resources each tick.
 - Health/mana regeneration
 - Quest rewards
 - Limited item drops (use Max Total Production)
+
+**Note on Buffer Capacity:**
+- Buffer capacity limits how much remains stored in the Source after transfers.
+- Production can still flow out in the same tick; if outputs are blocked and the buffer is full, any excess is discarded (and not counted in `totalProduced`).
 
 ---
 
@@ -166,7 +170,7 @@ Consumes and removes resources from the system.
 | Property | Description |
 |----------|-------------|
 | Label | Node name |
-| Resources | Removed resources (counter) |
+| Resources | Removed resources (counter, increases when draining) |
 | Probability | % consumption chance |
 
 **Use cases:**
@@ -382,6 +386,7 @@ For complex logic beyond simple formulas, **Source** and **Converter** nodes sup
 Notes:
 - Returned values are clamped to `>= 0` and rounded down to an integer.
 - Use standalone math helpers like `min()`/`sin()` (there is no `Math` object in the sandbox).
+- Scripts are evaluated asynchronously and cached; the simulator uses the last computed value (Play/Step pre-computes once to avoid a "0" first tick).
 
 ### Security Features
 

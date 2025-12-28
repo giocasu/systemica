@@ -119,7 +119,7 @@ Produce risorse automaticamente ad ogni tick.
 |-----------|-------------|
 | Label | Nome del nodo |
 | Buffer | Risorse nel buffer corrente (usabile nelle formule) |
-| Buffer Capacity | Capacità massima del buffer (-1 = illimitato) |
+| Buffer Capacity | Capacità massima conservata nel buffer (-1 = illimitato) |
 | Max Total Production | Totale risorse producibili (-1 = infinito) |
 | Production Rate | Risorse prodotte per tick (supporta decimali: 0.1, 0.5, etc.) |
 | Distribution Mode | **Continuous** (dividi equamente) o **Discrete** (round-robin) |
@@ -136,6 +136,10 @@ Produce risorse automaticamente ad ogni tick.
 - Rigenerazione vita/mana
 - Quest rewards
 - Drop limitati (usa Max Total Production)
+
+**Nota su Buffer Capacity:**
+- La capacità limita quanto rimane nel buffer del Source dopo i trasferimenti.
+- La produzione può comunque fluire nello stesso tick; se gli output sono bloccati e il buffer è pieno, l’eccesso viene scartato (e non conta in `totalProduced`).
 
 ---
 
@@ -165,7 +169,7 @@ Consuma e rimuove risorse dal sistema.
 | Proprietà | Descrizione |
 |-----------|-------------|
 | Label | Nome del nodo |
-| Resources | Risorse rimosse (contatore) |
+| Resources | Risorse rimosse (contatore che aumenta quando drena) |
 | Probability | % di consumo |
 
 **Esempi d'uso:**
@@ -386,6 +390,7 @@ Per logiche complesse oltre le semplici formule, i nodi **Source** e **Converter
 Note:
 - I valori restituiti vengono clampati a `>= 0` e arrotondati per difetto a intero.
 - Usa funzioni matematiche “globali” (`min()`, `sin()`, ecc.): non esiste l’oggetto `Math` nella sandbox.
+- Gli script sono valutati in modo asincrono e cached; il simulatore usa l’ultimo valore calcolato (Play/Step pre-calcola una volta per evitare un primo tick a “0”).
 
 ### Caratteristiche di Sicurezza
 

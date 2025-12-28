@@ -149,6 +149,7 @@ return state.count;
 
 - Lo script deve restituire un numero.
 - Il valore viene clampato a `>= 0` e arrotondato per difetto a intero.
+- Gli script sono valutati in modo asincrono e cached; la simulazione usa l’ultimo valore calcolato (Play/Step pre-calcola una volta per evitare un primo tick a “0”).
 
 ## Vantaggi di QuickJS-Emscripten
 
