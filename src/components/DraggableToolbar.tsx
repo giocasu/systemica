@@ -35,8 +35,9 @@ export function DraggableToolbar({
     canRedo,
     copySelected,
     paste,
-    selectedNodeId,
+    selectedNodeIds,
     clipboard,
+    clearCanvas,
     exportStatsToCSV,
     resourceHistory,
     nodes,
@@ -50,7 +51,12 @@ export function DraggableToolbar({
 
   const handleNew = () => {
     if (nodes.length === 0) return;
-    if (confirm('Create new project? Unsaved changes will be lost.')) newProject();
+    if (confirm('Start a new project? This will clear undo history.')) newProject();
+  };
+
+  const handleClearCanvas = () => {
+    if (nodes.length === 0 && edges.length === 0) return;
+    if (confirm('Clear canvas? (You can undo with Ctrl+Z)')) clearCanvas();
   };
 
   const handleSave = () => {
@@ -160,7 +166,7 @@ export function DraggableToolbar({
               <div className="toolbar-buttons">
                 <button onClick={undo} disabled={!canUndo()} title="Undo (Ctrl+Z)">↩️</button>
                 <button onClick={redo} disabled={!canRedo()} title="Redo (Ctrl+Y)">↪️</button>
-                <button onClick={copySelected} disabled={!selectedNodeId} title="Copy (Ctrl+C)">📋</button>
+                <button onClick={copySelected} disabled={selectedNodeIds.length === 0} title="Copy (Ctrl+C)">📋</button>
                 <button onClick={paste} disabled={!clipboard} title="Paste (Ctrl+V)">📄</button>
               </div>
             </div>
@@ -170,6 +176,7 @@ export function DraggableToolbar({
               <div className="section-label">File</div>
               <div className="toolbar-buttons">
                 <button onClick={handleNew} title="New project">📄</button>
+                <button onClick={handleClearCanvas} title="Clear canvas (undoable)">🧹</button>
                 <button onClick={handleSave} title="Save project">💾</button>
                 <button onClick={handleLoad} title="Load project">📂</button>
                 <button onClick={exportStatsToCSV} disabled={resourceHistory.length === 0} title="Export CSV">📊</button>

@@ -88,13 +88,14 @@ npm run dev
 | 🏃 Slider | Simulation speed (0.1x - 5x) |
 | ↩️ Undo | Undo last action (Ctrl+Z) |
 | ↪️ Redo | Redo action (Ctrl+Y) |
-| 📋 Copy | Copy selected node (Ctrl+C) |
+| 📋 Copy | Copy selected node(s) (Ctrl+C) |
 | 📄 Paste | Paste node (Ctrl+V) |
 | 💾 Save | Save project as JSON |
 | 📂 Load | Load JSON project |
 | 📊 CSV | Export simulation statistics |
 | 📋 Templates | Load pre-built scenario |
 | 🔗 Share | Copy shareable link to clipboard |
+| 🧹 Clear | Clear canvas (keeps undo history) |
 
 ### Node Palette
 
@@ -260,8 +261,12 @@ The flow rate is displayed as a label on the connection.
 The simulation proceeds in discrete **ticks**. Each tick:
 
 1. **Phase 1:** Sources produce resources (if probability check passes)
-2. **Phase 2:** Resources flow through connections
-3. **Phase 3:** Converters process accumulated resources
+2. **Phase 2:** Resources flow through connections (based on the **start-of-tick snapshot**)
+3. **Phase 3:** Converters process accumulated resources (from the **start-of-tick snapshot**)
+
+Notes:
+- Resources received during a tick become available for processing/forwarding on the **next tick** (so chains take multiple ticks).
+- Sources can produce and send in the same tick; buffer capacity only limits what remains stored after sending.
 
 ### Controls
 
@@ -553,8 +558,12 @@ Both **Formula** and **Script** modes include a **✓ Validate** button:
 | `Ctrl + Z` | Undo |
 | `Ctrl + Y` | Redo |
 | `Ctrl + Shift + Z` | Redo (alternative) |
-| `Ctrl + C` | Copy selected node |
+| `Ctrl + C` | Copy selected node(s) |
 | `Ctrl + V` | Paste node |
+
+Selection:
+- `Shift + Click` adds/removes nodes from the selection
+- `Shift + Drag` box-selects multiple nodes
 
 ---
 

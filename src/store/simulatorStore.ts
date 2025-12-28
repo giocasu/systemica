@@ -51,6 +51,8 @@ export interface ProjectData {
 interface SimulatorState {
   nodes: Node<NodeData>[];
   edges: Edge<EdgeData>[];
+  selectedNodeIds: string[];
+  selectedEdgeIds: string[];
   selectedNodeId: string | null;
   selectedEdgeId: string | null;
   isRunning: boolean;
@@ -76,10 +78,13 @@ interface SimulatorState {
   addNode: (type: NodeType, position: { x: number; y: number }) => void;
   updateNodeData: (nodeId: string, data: Partial<NodeData>) => void;
   updateEdgeData: (edgeId: string, data: Partial<EdgeData>) => void;
+  setSelection: (nodeIds: string[], edgeIds: string[]) => void;
+  clearSelection: () => void;
   setSelectedNode: (nodeId: string | null) => void;
   setSelectedEdge: (edgeId: string | null) => void;
   deleteSelectedNode: () => void;
   deleteSelectedEdge: () => void;
+  clearCanvas: () => void;
   toggleRunning: () => void;
   tick: () => void;
   step: () => void;
@@ -118,10 +123,29 @@ interface SimulatorState {
 let nodeIdCounter = 1;
 
 const MAX_HISTORY = 50;
+const HISTORY_DEBOUNCE_MS = 400;
+
+let historyDebounceHandle: ReturnType<typeof setTimeout> | null = null;
+const clearPendingHistoryCommit = () => {
+  if (historyDebounceHandle) {
+    clearTimeout(historyDebounceHandle);
+    historyDebounceHandle = null;
+  }
+};
+
+const scheduleHistoryCommit = (getState: () => SimulatorState) => {
+  clearPendingHistoryCommit();
+  historyDebounceHandle = setTimeout(() => {
+    historyDebounceHandle = null;
+    getState().pushHistory();
+  }, HISTORY_DEBOUNCE_MS);
+};
 
 export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   nodes: [],
   edges: [],
+  selectedNodeIds: [],
+  selectedEdgeIds: [],
   selectedNodeId: null,
   selectedEdgeId: null,
   isRunning: false,
@@ -131,8 +155,8 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   ticksPerSecond: 1,
   
   // History
-  history: [],
-  historyIndex: -1,
+  history: [{ nodes: [], edges: [] }],
+  historyIndex: 0,
   
   // Clipboard
   clipboard: null,
@@ -144,12 +168,21 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     set((state) => ({
       nodes: applyNodeChanges(changes, state.nodes),
     }));
+
+    const shouldCommit = changes.some((c) => {
+      if (c.type === 'position') return c.dragging === false;
+      return c.type === 'remove';
+    });
+    if (shouldCommit) get().pushHistory();
   },
 
   onEdgesChange: (changes) => {
     set((state) => ({
       edges: applyEdgeChanges(changes, state.edges),
     }));
+
+    const shouldCommit = changes.some((c) => c.type === 'remove');
+    if (shouldCommit) get().pushHistory();
   },
 
   onConnect: (connection) => {
@@ -170,11 +203,10 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         state.edges
       ),
     }));
+    get().pushHistory();
   },
 
   addNode: (type, position) => {
-    get().pushHistory();
-    
     const id = `node_${nodeIdCounter++}`;
     const defaults = nodeDefaults[type];
     
@@ -215,6 +247,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     set((state) => ({
       nodes: [...state.nodes, newNode],
     }));
+    get().pushHistory();
   },
 
   updateNodeData: (nodeId, data) => {
@@ -225,6 +258,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
           : node
       ),
     }));
+    scheduleHistoryCommit(get);
   },
 
   updateEdgeData: (edgeId, data) => {
@@ -242,40 +276,112 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
           : edge
       ),
     }));
+    scheduleHistoryCommit(get);
+  },
+
+  setSelection: (nodeIds, edgeIds) => {
+    const singleNodeId = nodeIds.length === 1 && edgeIds.length === 0 ? nodeIds[0] : null;
+    const singleEdgeId = edgeIds.length === 1 && nodeIds.length === 0 ? edgeIds[0] : null;
+
+    set({
+      selectedNodeIds: nodeIds,
+      selectedEdgeIds: edgeIds,
+      selectedNodeId: singleNodeId,
+      selectedEdgeId: singleEdgeId,
+    });
+  },
+
+  clearSelection: () => {
+    set((state) => ({
+      nodes: state.nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+      edges: state.edges.map((e) => (e.selected ? { ...e, selected: false } : e)),
+      selectedNodeIds: [],
+      selectedEdgeIds: [],
+      selectedNodeId: null,
+      selectedEdgeId: null,
+    }));
   },
 
   setSelectedNode: (nodeId) => {
-    set({ selectedNodeId: nodeId, selectedEdgeId: null });
+    if (!nodeId) {
+      get().clearSelection();
+      return;
+    }
+
+    set((state) => ({
+      nodes: state.nodes.map((n) => ({ ...n, selected: n.id === nodeId })),
+      edges: state.edges.map((e) => (e.selected ? { ...e, selected: false } : e)),
+      selectedNodeIds: [nodeId],
+      selectedEdgeIds: [],
+      selectedNodeId: nodeId,
+      selectedEdgeId: null,
+    }));
   },
 
   setSelectedEdge: (edgeId) => {
-    set({ selectedEdgeId: edgeId, selectedNodeId: null });
+    if (!edgeId) {
+      get().clearSelection();
+      return;
+    }
+
+    set((state) => ({
+      nodes: state.nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+      edges: state.edges.map((e) => ({ ...e, selected: e.id === edgeId })),
+      selectedNodeIds: [],
+      selectedEdgeIds: [edgeId],
+      selectedNodeId: null,
+      selectedEdgeId: edgeId,
+    }));
   },
 
   deleteSelectedNode: () => {
-    const { selectedNodeId, nodes, edges } = get();
-    if (!selectedNodeId) return;
-    
-    get().pushHistory();
-    
-    // Remove node and all connected edges
+    const { selectedNodeIds, nodes, edges } = get();
+    if (selectedNodeIds.length === 0) return;
+
+    const selectedSet = new Set(selectedNodeIds);
     set({
-      nodes: nodes.filter((n) => n.id !== selectedNodeId),
-      edges: edges.filter((e) => e.source !== selectedNodeId && e.target !== selectedNodeId),
+      nodes: nodes.filter((n) => !selectedSet.has(n.id)).map((n) => (n.selected ? { ...n, selected: false } : n)),
+      edges: edges
+        .filter((e) => !selectedSet.has(e.source) && !selectedSet.has(e.target))
+        .map((e) => (e.selected ? { ...e, selected: false } : e)),
+      selectedNodeIds: [],
+      selectedEdgeIds: [],
       selectedNodeId: null,
+      selectedEdgeId: null,
     });
+    get().pushHistory();
   },
 
   deleteSelectedEdge: () => {
-    const { selectedEdgeId, edges } = get();
-    if (!selectedEdgeId) return;
-    
-    get().pushHistory();
-    
+    const { selectedEdgeIds, edges } = get();
+    if (selectedEdgeIds.length === 0) return;
+
+    const selectedSet = new Set(selectedEdgeIds);
     set({
-      edges: edges.filter((e) => e.id !== selectedEdgeId),
+      edges: edges.filter((e) => !selectedSet.has(e.id)).map((e) => (e.selected ? { ...e, selected: false } : e)),
+      selectedEdgeIds: [],
       selectedEdgeId: null,
     });
+    get().pushHistory();
+  },
+
+  clearCanvas: () => {
+    const { nodes, edges } = get();
+    if (nodes.length === 0 && edges.length === 0) return;
+
+    clearPendingHistoryCommit();
+    set({
+      nodes: [],
+      edges: [],
+      selectedNodeIds: [],
+      selectedEdgeIds: [],
+      selectedNodeId: null,
+      selectedEdgeId: null,
+      isRunning: false,
+      currentTick: 0,
+      resourceHistory: [],
+    });
+    get().pushHistory();
   },
 
   toggleRunning: () => {
@@ -284,34 +390,64 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
   tick: () => {
     const { nodes, edges, currentTick } = get();
-    
-    // Create a map for quick lookup
+
     const nodeMap = new Map(nodes.map((n) => [n.id, { ...n, data: { ...n.data } }]));
     for (const node of nodeMap.values()) {
       node.data.lastSent = 0;
-      if (node.data.nodeType === 'source') {
-        node.data.lastProduced = 0;
-      }
-      if (node.data.nodeType === 'pool') {
-        node.data.lastReceived = 0;
-      }
-      if (node.data.nodeType === 'converter') {
-        node.data.lastConverted = 0;
-      }
-      if (node.data.nodeType === 'drain') {
-        node.data.lastConsumed = 0;
-      }
+      if (node.data.nodeType === 'source') node.data.lastProduced = 0;
+      if (node.data.nodeType === 'pool') node.data.lastReceived = 0;
+      if (node.data.nodeType === 'converter') node.data.lastConverted = 0;
+      if (node.data.nodeType === 'drain') node.data.lastConsumed = 0;
     }
 
-    // Helper function to check probability
-    const checkProbability = (prob: number): boolean => {
-      return Math.random() * 100 < prob;
+    // Snapshot resources at the start of the tick.
+    // Transfers are computed from the snapshot and applied at the end of the tick (no multi-hop in one tick).
+    const baseResources = new Map<string, number>();
+    for (const node of nodeMap.values()) baseResources.set(node.id, node.data.resources);
+
+    const incomingDelta = new Map<string, number>();
+    const sentAmount = new Map<string, number>();
+    const converterConsumed = new Map<string, number>();
+
+    const addIncoming = (nodeId: string, amount: number) => {
+      if (amount <= 0) return;
+      incomingDelta.set(nodeId, (incomingDelta.get(nodeId) ?? 0) + amount);
     };
-    
-    // Helper function to get production rate (uses formula or script if enabled)
+
+    const addSent = (nodeId: string, amount: number) => {
+      if (amount <= 0) return;
+      sentAmount.set(nodeId, (sentAmount.get(nodeId) ?? 0) + amount);
+    };
+
+    const getEffectiveTargetResources = (nodeId: string) => {
+      return (baseResources.get(nodeId) ?? 0) + (incomingDelta.get(nodeId) ?? 0);
+    };
+
+    const getTargetSpace = (target: Node<NodeData>) => {
+      if (target.data.nodeType === 'drain') return Infinity;
+      const cap = target.data.capacity ?? -1;
+      if (cap === -1 || !Number.isFinite(cap)) return Infinity;
+      return Math.max(0, cap - getEffectiveTargetResources(target.id));
+    };
+
+    const recordTransfer = (from: Node<NodeData>, to: Node<NodeData>, amount: number) => {
+      if (amount <= 0) return;
+      addSent(from.id, amount);
+      from.data.lastSent = (from.data.lastSent ?? 0) + amount;
+
+      addIncoming(to.id, amount);
+      if (to.data.nodeType === 'drain') {
+        to.data.lastConsumed = (to.data.lastConsumed ?? 0) + amount;
+      } else if (to.data.nodeType === 'pool') {
+        to.data.lastReceived = (to.data.lastReceived ?? 0) + amount;
+      }
+    };
+
+    const checkProbability = (prob: number): boolean => Math.random() * 100 < prob;
+
     const getProductionRate = (node: Node<NodeData>): number => {
       const mode = node.data.processingMode || (node.data.useFormula ? 'formula' : 'fixed');
-      
+
       if (mode === 'formula' && node.data.formula) {
         const result = evaluateFormula(node.data.formula, {
           resources: node.data.resources,
@@ -321,56 +457,50 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         });
         return result ?? node.data.productionRate;
       }
-      
-      // Script mode: scripts are async, so we use cached result or fall back to formula/fixed
-      // The actual script execution happens separately and updates scriptState
+
       if (mode === 'script' && node.data.script) {
-        // For now, scripts use the last computed value stored in scriptState
-        // or fall back to productionRate
         const lastOutput = node.data.scriptState?.lastOutput;
         return typeof lastOutput === 'number' ? lastOutput : node.data.productionRate;
       }
-      
+
       return node.data.productionRate;
     };
 
-    // Phase 1: Compute how much each Source produces THIS tick (with probability + maxProduction)
-    // Note: produced resources are available for transfer in Phase 2; buffer capacity only limits leftovers.
+    // Phase 1: compute how much each Source produces THIS tick.
     const sourceProductionThisTick = new Map<string, number>();
-    
+
     for (const node of nodeMap.values()) {
-      if (node.data.nodeType === 'source' && node.data.isActive) {
-        const maxProd = node.data.maxProduction ?? -1;
-        const totalProduced = node.data.totalProduced ?? 0;
-        
-        // Check if source is exhausted (max production reached)
-        if (maxProd !== -1 && totalProduced >= maxProd) {
-          sourceProductionThisTick.set(node.id, 0);
-          continue; // Source exhausted, don't produce
-        }
-        
-        const prob = node.data.probability ?? 100;
-        if (checkProbability(prob)) {
-          let production = getProductionRate(node);
-          if (!Number.isFinite(production) || production <= 0) {
-            sourceProductionThisTick.set(node.id, 0);
-            continue;
-          }
-          
-          // Limit production to not exceed max production
-          if (maxProd !== -1) {
-            const remaining = maxProd - totalProduced;
-            production = Math.min(production, remaining);
-          }
-          sourceProductionThisTick.set(node.id, production);
-        } else {
-          sourceProductionThisTick.set(node.id, 0);
-        }
+      if (node.data.nodeType !== 'source' || !node.data.isActive) continue;
+
+      const maxProd = node.data.maxProduction ?? -1;
+      const totalProduced = node.data.totalProduced ?? 0;
+
+      if (maxProd !== -1 && totalProduced >= maxProd) {
+        sourceProductionThisTick.set(node.id, 0);
+        continue;
       }
+
+      const prob = node.data.probability ?? 100;
+      if (!checkProbability(prob)) {
+        sourceProductionThisTick.set(node.id, 0);
+        continue;
+      }
+
+      let production = getProductionRate(node);
+      if (!Number.isFinite(production) || production <= 0) {
+        sourceProductionThisTick.set(node.id, 0);
+        continue;
+      }
+
+      if (maxProd !== -1) {
+        const remaining = maxProd - totalProduced;
+        production = Math.min(production, remaining);
+      }
+
+      sourceProductionThisTick.set(node.id, production);
     }
 
-    // Phase 2: Process edges (transfer resources)
-    // Group edges by source node for proper distribution
+    // Group edges by source
     const edgesBySource = new Map<string, Edge<EdgeData>[]>();
     for (const edge of edges) {
       const sourceEdges = edgesBySource.get(edge.source) || [];
@@ -378,335 +508,284 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       edgesBySource.set(edge.source, sourceEdges);
     }
 
-    // Process each source node and distribute to its outputs
+    // Phase 2: transfer along edges based on snapshot resources.
     for (const [sourceId, outgoingEdges] of edgesBySource) {
       const source = nodeMap.get(sourceId);
       if (!source || !source.data.isActive) continue;
 
+      if (source.data.nodeType === 'converter' || source.data.nodeType === 'drain') continue;
+
       const isSource = source.data.nodeType === 'source';
 
-      // Check source probability for transfer (except sources which always transfer)
       const prob = source.data.probability ?? 100;
-      if (!checkProbability(prob) && !isSource) continue;
+      if (!isSource && !checkProbability(prob)) continue;
 
-      // Check gate condition if source is a gate
       if (source.data.nodeType === 'gate') {
         const condition = source.data.gateCondition ?? 'always';
         const threshold = source.data.gateThreshold ?? 0;
-        const resources = source.data.resources;
-        
+        const resources = baseResources.get(sourceId) ?? 0;
+
         if (condition === 'if_above' && resources <= threshold) continue;
         if (condition === 'if_below' && resources >= threshold) continue;
       }
 
       const productionThisTick = sourceProductionThisTick.get(sourceId) ?? 0;
-      let available = source.data.resources;
-      if (source.data.nodeType === 'source') {
-        available += productionThisTick;
-      }
-
+      let available = (baseResources.get(sourceId) ?? 0) + (isSource ? productionThisTick : 0);
       if (available <= 0) continue;
 
-      // Get distribution mode (default to continuous for backward compatibility)
       const distributionMode = source.data.distributionMode ?? 'continuous';
-      
-      // Filter valid targets and calculate flow
-      const validEdges: { edge: Edge<EdgeData>; target: Node<NodeData>; flowRate: number; targetSpace: number }[] = [];
-      
+
+      const validEdges: { target: Node<NodeData>; flowRate: number; targetSpace: number }[] = [];
       for (const edge of outgoingEdges) {
         const target = nodeMap.get(edge.target);
         if (!target) continue;
-        
+
         const flowRate = (edge.data as { flowRate?: number })?.flowRate ?? 1;
-        
-        // Check target capacity
-        let targetSpace: number;
-        if (target.data.nodeType === 'drain') {
-          targetSpace = Infinity;
-        } else if (target.data.capacity === -1) {
-          targetSpace = Infinity;
-        } else {
-          targetSpace = Math.max(0, target.data.capacity - target.data.resources);
-        }
-        
-        if (targetSpace > 0) {
-          validEdges.push({ edge, target, flowRate, targetSpace });
-        }
+        if (!Number.isFinite(flowRate) || flowRate <= 0) continue;
+
+        const targetSpace = getTargetSpace(target);
+        if (targetSpace > 0) validEdges.push({ target, flowRate, targetSpace });
       }
 
-      const canTransfer = validEdges.length > 0;
-      if (canTransfer) {
-        if (distributionMode === 'continuous') {
-          // CONTINUOUS MODE: Split resources equally among all outputs
-          // Each edge gets a fraction of the total, limited by its flowRate
-          const totalFlowRates = validEdges.reduce((sum, e) => sum + e.flowRate, 0);
-          const totalAvailable = available;
-          
-          for (const { target, flowRate, targetSpace } of validEdges) {
-            // Proportional distribution based on flowRate
-            const proportion = flowRate / totalFlowRates;
-            const allocated = totalAvailable * proportion;
-            const actualFlow = Math.min(allocated, flowRate, targetSpace);
-            
-            if (actualFlow > 0) {
-              // Remove from source
-              if (isSource) {
-                available -= actualFlow;
-              } else {
-                source.data.resources -= actualFlow;
-              }
-              source.data.lastSent = (source.data.lastSent ?? 0) + actualFlow;
-              
-              // Add to target
-              if (target.data.nodeType === 'drain') {
-                target.data.resources += actualFlow;
-                target.data.lastConsumed = (target.data.lastConsumed ?? 0) + actualFlow;
-              } else {
-                target.data.resources += actualFlow;
-                if (target.data.nodeType === 'pool') {
-                  target.data.lastReceived = (target.data.lastReceived ?? 0) + actualFlow;
-                }
-              }
-            }
+      if (validEdges.length === 0) continue;
+
+      if (distributionMode === 'continuous') {
+        const totalFlowRates = validEdges.reduce((sum, e) => sum + e.flowRate, 0);
+        const totalAvailable = available;
+
+        for (const { target, flowRate } of validEdges) {
+          const proportion = flowRate / totalFlowRates;
+          const allocated = totalAvailable * proportion;
+          const actualFlow = Math.min(allocated, flowRate, getTargetSpace(target), available);
+          if (actualFlow > 0) {
+            available -= actualFlow;
+            recordTransfer(source, target, actualFlow);
           }
-        } else {
-          // DISCRETE MODE: Round-robin, one resource unit at a time
-          // Send whole units to one target at a time, rotating through targets
-          let lastIndex = source.data.lastDistributionIndex ?? 0;
-          let remaining = Math.floor(available); // Only whole units
-          
-          while (remaining > 0 && validEdges.length > 0) {
-            // Find next valid target (round-robin)
-            let found = false;
-            for (let i = 0; i < validEdges.length; i++) {
-              const idx = (lastIndex + i) % validEdges.length;
-              const { target, flowRate, targetSpace } = validEdges[idx];
-              
-              // Can we send at least 1 unit?
-              const canSend = Math.min(1, flowRate, targetSpace);
-              if (canSend >= 1) {
-                // Remove from source
-                if (isSource) {
-                  available -= 1;
-                } else {
-                  source.data.resources -= 1;
-                }
-                source.data.lastSent = (source.data.lastSent ?? 0) + 1;
-                
-                // Add to target
-                if (target.data.nodeType === 'drain') {
-                  target.data.resources += 1;
-                  target.data.lastConsumed = (target.data.lastConsumed ?? 0) + 1;
-                } else {
-                  target.data.resources += 1;
-                  if (target.data.nodeType === 'pool') {
-                    target.data.lastReceived = (target.data.lastReceived ?? 0) + 1;
-                  }
-                }
-              
-                remaining -= 1;
-                lastIndex = (idx + 1) % validEdges.length;
-                found = true;
-                
-                // Update targetSpace for next iteration
-                validEdges[idx].targetSpace -= 1;
-                if (validEdges[idx].targetSpace <= 0) {
-                  validEdges.splice(idx, 1);
-                  if (lastIndex > idx) lastIndex--;
-                  if (lastIndex >= validEdges.length) lastIndex = 0;
-                }
-                break;
-              }
-            }
-            
-            if (!found) break; // No valid targets left
-          }
-          
-          // Save last index for next tick
-          source.data.lastDistributionIndex = lastIndex;
         }
-      } else if (!isSource) {
+      } else {
+        let lastIndex = source.data.lastDistributionIndex ?? 0;
+        let remaining = Math.floor(available);
+
+        while (remaining > 0 && validEdges.length > 0) {
+          let found = false;
+
+          for (let i = 0; i < validEdges.length; i++) {
+            const idx = (lastIndex + i) % validEdges.length;
+            const { target, flowRate, targetSpace } = validEdges[idx];
+
+            const canSend = Math.min(1, flowRate, targetSpace, remaining);
+            if (canSend >= 1) {
+              available -= 1;
+              remaining -= 1;
+              recordTransfer(source, target, 1);
+
+              lastIndex = (idx + 1) % validEdges.length;
+              found = true;
+
+              validEdges[idx].targetSpace -= 1;
+              if (validEdges[idx].targetSpace <= 0) {
+                validEdges.splice(idx, 1);
+                if (lastIndex > idx) lastIndex--;
+                if (lastIndex >= validEdges.length) lastIndex = 0;
+              }
+
+              break;
+            }
+          }
+
+          if (!found) break;
+        }
+
+        source.data.lastDistributionIndex = lastIndex;
+      }
+    }
+
+    // Phase 3: converters transform input (snapshot) into output and distribute the produced output.
+    for (const node of nodeMap.values()) {
+      if (node.data.nodeType !== 'converter' || !node.data.isActive) continue;
+
+      const inputResources = baseResources.get(node.id) ?? 0;
+      if (inputResources <= 0) continue;
+
+      const mode = node.data.processingMode || (node.data.useFormula ? 'formula' : 'fixed');
+
+      let outputAmount: number;
+      let inputConsumed: number;
+
+      if (mode === 'formula' && node.data.formula) {
+        const result = evaluateFormula(node.data.formula, {
+          resources: inputResources,
+          tick: currentTick,
+          capacity: node.data.capacity,
+          input: inputResources,
+        });
+
+        if (result === null || result <= 0) continue;
+        outputAmount = result;
+        inputConsumed = inputResources;
+      } else if (mode === 'script' && node.data.script) {
+        const cachedOutput = node.data.scriptState?.lastOutput;
+        if (typeof cachedOutput !== 'number' || cachedOutput <= 0) continue;
+        outputAmount = cachedOutput;
+        inputConsumed = inputResources;
+      } else {
+        const inputRatio = node.data.inputRatio ?? 2;
+        const outputRatio = node.data.outputRatio ?? 1;
+        const conversions = Math.floor(inputResources / inputRatio);
+        if (conversions <= 0) continue;
+        outputAmount = conversions * outputRatio;
+        inputConsumed = conversions * inputRatio;
+      }
+
+      const outputEdges = edgesBySource.get(node.id) ?? [];
+      if (outputEdges.length === 0) continue;
+
+      const distributionMode = node.data.distributionMode ?? 'continuous';
+      let outputAvailable = outputAmount;
+      let actualOutputUsed = 0;
+
+      const validEdges: { target: Node<NodeData>; flowRate: number; targetSpace: number }[] = [];
+      for (const edge of outputEdges) {
+        const target = nodeMap.get(edge.target);
+        if (!target) continue;
+
+        const flowRate = (edge.data as { flowRate?: number })?.flowRate ?? 1;
+        if (!Number.isFinite(flowRate) || flowRate <= 0) continue;
+
+        const targetSpace = getTargetSpace(target);
+        if (targetSpace > 0) validEdges.push({ target, flowRate, targetSpace });
+      }
+
+      if (validEdges.length === 0) continue;
+
+      if (distributionMode === 'continuous') {
+        const totalFlowRates = validEdges.reduce((sum, e) => sum + e.flowRate, 0);
+        const totalAvailable = outputAvailable;
+
+        for (const { target, flowRate } of validEdges) {
+          const proportion = flowRate / totalFlowRates;
+          const allocated = totalAvailable * proportion;
+          const actualFlow = Math.min(allocated, flowRate, getTargetSpace(target), outputAvailable);
+          if (actualFlow > 0) {
+            outputAvailable -= actualFlow;
+            actualOutputUsed += actualFlow;
+            recordTransfer(node, target, actualFlow);
+          }
+        }
+      } else {
+        let lastIndex = node.data.lastDistributionIndex ?? 0;
+        let remaining = Math.floor(outputAvailable);
+
+        while (remaining > 0 && validEdges.length > 0) {
+          let found = false;
+
+          for (let i = 0; i < validEdges.length; i++) {
+            const idx = (lastIndex + i) % validEdges.length;
+            const { target, flowRate, targetSpace } = validEdges[idx];
+
+            const canSend = Math.min(1, flowRate, targetSpace, remaining);
+            if (canSend >= 1) {
+              outputAvailable -= 1;
+              remaining -= 1;
+              actualOutputUsed += 1;
+              recordTransfer(node, target, 1);
+
+              lastIndex = (idx + 1) % validEdges.length;
+              found = true;
+
+              validEdges[idx].targetSpace -= 1;
+              if (validEdges[idx].targetSpace <= 0) {
+                validEdges.splice(idx, 1);
+                if (lastIndex > idx) lastIndex--;
+                if (lastIndex >= validEdges.length) lastIndex = 0;
+              }
+
+              break;
+            }
+          }
+
+          if (!found) break;
+        }
+
+        node.data.lastDistributionIndex = lastIndex;
+      }
+
+      node.data.lastConverted = actualOutputUsed;
+
+      // Consume input proportionally to actual output (formula/script) or by ratio (fixed).
+      if (mode === 'formula' || mode === 'script') {
+        const ratio = outputAmount > 0 ? actualOutputUsed / outputAmount : 0;
+        converterConsumed.set(node.id, Math.max(0, Math.min(inputResources, Math.floor(inputConsumed * ratio))));
+      } else {
+        const outputRatio = node.data.outputRatio ?? 1;
+        const inputRatio = node.data.inputRatio ?? 2;
+        const actualConversions = Math.ceil(actualOutputUsed / outputRatio);
+        converterConsumed.set(node.id, Math.max(0, Math.min(inputResources, actualConversions * inputRatio)));
+      }
+    }
+
+    // Apply deltas at end of tick (snapshot semantics)
+    for (const node of nodeMap.values()) {
+      const base = baseResources.get(node.id) ?? 0;
+      const incoming = incomingDelta.get(node.id) ?? 0;
+      const sent = sentAmount.get(node.id) ?? 0;
+
+      if (node.data.nodeType === 'source') {
+        const produced = sourceProductionThisTick.get(node.id) ?? 0;
+        let preCap = base + produced - sent + incoming;
+
+        const capacity = node.data.capacity ?? -1;
+        let overflow = 0;
+        if (capacity !== -1 && Number.isFinite(capacity)) {
+          overflow = Math.max(0, preCap - capacity);
+          preCap = Math.min(preCap, capacity);
+        }
+
+        node.data.resources = Math.max(0, preCap);
+
+        // Prefer discarding incoming first, then produced (so incoming doesn't reduce totalProduced).
+        const discardedIncoming = Math.min(incoming, overflow);
+        const overflowAfterIncoming = overflow - discardedIncoming;
+        const discardedProduced = Math.min(produced, overflowAfterIncoming);
+        const actualProduced = Math.max(0, produced - discardedProduced);
+
+        if (actualProduced > 0) node.data.totalProduced = (node.data.totalProduced ?? 0) + actualProduced;
+        node.data.lastProduced = actualProduced;
         continue;
       }
 
-      // For Sources: buffer capacity limits only leftover resources after transfer
-      if (isSource) {
-        const capacity = source.data.capacity ?? -1;
-        let overflow = 0;
-        if (capacity !== -1 && Number.isFinite(capacity)) {
-          const capped = Math.min(available, capacity);
-          overflow = Math.max(0, available - capped);
-          available = capped;
-        }
-
-        source.data.resources = available;
-
-        // Only count as produced what actually remains in the system (stored or transferred).
-        // Any overflow due to buffer capacity is treated as "not produced".
-        const actualProduced = Math.max(0, productionThisTick - overflow);
-        if (actualProduced > 0) {
-          source.data.totalProduced = (source.data.totalProduced ?? 0) + actualProduced;
-        }
-        source.data.lastProduced = actualProduced;
+      if (node.data.nodeType === 'converter') {
+        const consumed = converterConsumed.get(node.id) ?? 0;
+        node.data.resources = Math.max(0, base - consumed + incoming);
+        continue;
       }
+
+      if (node.data.nodeType === 'drain') {
+        node.data.resources = base + incoming;
+        continue;
+      }
+
+      node.data.resources = Math.max(0, base - sent + incoming);
     }
 
-    // Finalize Sources without outgoing edges (or without being processed above)
-    for (const node of nodeMap.values()) {
-      if (node.data.nodeType !== 'source' || !node.data.isActive) continue;
-      if (edgesBySource.has(node.id)) continue;
-
-      const productionThisTick = sourceProductionThisTick.get(node.id) ?? 0;
-      if (productionThisTick <= 0) continue;
-
-      let available = node.data.resources + productionThisTick;
-      const capacity = node.data.capacity ?? -1;
-      let overflow = 0;
-      if (capacity !== -1 && Number.isFinite(capacity)) {
-        const capped = Math.min(available, capacity);
-        overflow = Math.max(0, available - capped);
-        available = capped;
-      }
-
-      node.data.resources = available;
-      const actualProduced = Math.max(0, productionThisTick - overflow);
-      if (actualProduced > 0) {
-        node.data.totalProduced = (node.data.totalProduced ?? 0) + actualProduced;
-      }
-      node.data.lastProduced = actualProduced;
-    }
-
-    // Phase 3: Process converters
-    // Converters transform accumulated input into output
-    for (const node of nodeMap.values()) {
-      if (node.data.nodeType === 'converter' && node.data.isActive) {
-        const inputResources = node.data.resources;
-        
-        if (inputResources <= 0) continue;
-        
-        let outputAmount: number;
-        let inputConsumed: number;
-        
-        // Determine processing mode
-        const mode = node.data.processingMode || (node.data.useFormula ? 'formula' : 'fixed');
-        
-        if (mode === 'formula' && node.data.formula) {
-          // Formula mode: formula calculates output from input
-          const result = evaluateFormula(node.data.formula, {
-            resources: node.data.resources,
-            tick: get().currentTick,
-            capacity: node.data.capacity,
-            input: inputResources,
-          });
-          
-          if (result !== null && result > 0) {
-            outputAmount = result;
-            inputConsumed = inputResources; // Consume all input
-          } else {
-            continue; // Formula returned 0 or failed
-          }
-        } else if (mode === 'script' && node.data.script) {
-          // Script mode: use cached result from scriptState
-          const cachedOutput = node.data.scriptState?.lastOutput;
-          if (typeof cachedOutput === 'number' && cachedOutput > 0) {
-            outputAmount = cachedOutput;
-            inputConsumed = inputResources;
-          } else {
-            continue;
-          }
-        } else {
-          // Ratio mode: traditional input/output ratio
-          const inputRatio = node.data.inputRatio ?? 2;
-          const outputRatio = node.data.outputRatio ?? 1;
-          
-          // Calculate how many conversions can happen
-          const conversions = Math.floor(inputResources / inputRatio);
-          
-          if (conversions <= 0) continue;
-          
-          outputAmount = conversions * outputRatio;
-          inputConsumed = conversions * inputRatio;
-        }
-        
-        // Find output edges from this converter
-        const outputEdges = edges.filter(e => e.source === node.id);
-        
-        if (outputEdges.length > 0) {
-          const outputPerEdge = Math.floor(outputAmount / outputEdges.length);
-          let actualOutputUsed = 0;
-          
-          for (const edge of outputEdges) {
-            const target = nodeMap.get(edge.target);
-            if (!target) continue;
-            
-            // Check target capacity
-            let targetSpace: number;
-            if (target.data.nodeType === 'drain') {
-              targetSpace = outputPerEdge;
-            } else if (target.data.capacity === -1) {
-              targetSpace = outputPerEdge;
-            } else {
-              targetSpace = Math.max(0, target.data.capacity - target.data.resources);
-            }
-            
-            const actualOutput = Math.min(outputPerEdge, targetSpace);
-            
-            if (actualOutput > 0) {
-              if (target.data.nodeType === 'drain') {
-                target.data.resources += actualOutput;
-                target.data.lastConsumed = (target.data.lastConsumed ?? 0) + actualOutput;
-              } else {
-                target.data.resources += actualOutput;
-                if (target.data.nodeType === 'pool') {
-                  target.data.lastReceived = (target.data.lastReceived ?? 0) + actualOutput;
-                }
-              }
-              actualOutputUsed += actualOutput;
-            }
-          }
-          node.data.lastConverted = actualOutputUsed;
-          node.data.lastSent = (node.data.lastSent ?? 0) + actualOutputUsed;
-          
-          // Consume input proportionally to actual output
-          if (node.data.useFormula) {
-            // Formula mode: consume based on ratio of actual/planned output
-            const consumeRatio = actualOutputUsed / outputAmount;
-            node.data.resources = Math.max(0, node.data.resources - Math.floor(inputConsumed * consumeRatio));
-          } else {
-            // Ratio mode: consume exact input for conversions used
-            const outputRatio = node.data.outputRatio ?? 1;
-            const inputRatio = node.data.inputRatio ?? 2;
-            const actualConversions = Math.ceil(actualOutputUsed / outputRatio);
-            node.data.resources = Math.max(0, node.data.resources - actualConversions * inputRatio);
-          }
-        }
-      }
-    }
-
-    // Update state
-    const newTick = get().currentTick + 1;
+    const newTick = currentTick + 1;
     const updatedNodes = Array.from(nodeMap.values());
-    
-    // Build resource history entry
+
     const historyEntry: ResourceHistoryEntry = { tick: newTick };
     for (const node of updatedNodes) {
-      // Only track pools, sources with resources, and converters
       if (node.data.nodeType !== 'drain' && node.data.nodeType !== 'gate') {
         historyEntry[node.id] = node.data.resources;
       }
     }
-    
-    // Keep last 100 entries
+
     const newHistory = [...get().resourceHistory, historyEntry].slice(-100);
-    
+
     set({
       nodes: updatedNodes,
       currentTick: newTick,
       resourceHistory: newHistory,
     });
-    
-    // Execute scripts asynchronously for next tick
-    // This pre-computes script outputs so they're ready for the next tick
+
     get().executeScriptsAsync();
   },
   
@@ -797,16 +876,19 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   },
 
   newProject: () => {
+    clearPendingHistoryCommit();
     set({
       nodes: [],
       edges: [],
+      selectedNodeIds: [],
+      selectedEdgeIds: [],
       selectedNodeId: null,
       selectedEdgeId: null,
       currentTick: 0,
       isRunning: false,
       resourceHistory: [],
-      history: [],
-      historyIndex: -1,
+      history: [{ nodes: [], edges: [] }],
+      historyIndex: 0,
     });
   },
 
@@ -834,13 +916,20 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     }, 0);
     nodeIdCounter = maxId + 1;
 
+    clearPendingHistoryCommit();
+    const nextNodes = data.nodes.map((n) => (n.selected ? { ...n, selected: false } : n));
+    const nextEdges = data.edges.map((e) => (e.selected ? { ...e, selected: false } : e));
     set({
-      nodes: data.nodes,
-      edges: data.edges,
+      nodes: nextNodes,
+      edges: nextEdges,
+      selectedNodeIds: [],
+      selectedEdgeIds: [],
       selectedNodeId: null,
       selectedEdgeId: null,
       isRunning: false,
       currentTick: 0,
+      history: [{ nodes: JSON.parse(JSON.stringify(nextNodes)), edges: JSON.parse(JSON.stringify(nextEdges)) }],
+      historyIndex: 0,
     });
   },
 
@@ -853,14 +942,21 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     }, 0);
     nodeIdCounter = maxId + 1;
 
+    clearPendingHistoryCommit();
+    const nextNodes = nodes.map((n) => (n.selected ? { ...n, selected: false } : n));
+    const nextEdges = edges.map((e) => (e.selected ? { ...e, selected: false } : e));
     set({
-      nodes,
-      edges,
+      nodes: nextNodes,
+      edges: nextEdges,
+      selectedNodeIds: [],
+      selectedEdgeIds: [],
       selectedNodeId: null,
       selectedEdgeId: null,
       isRunning: false,
       currentTick: 0,
       resourceHistory: [],
+      history: [{ nodes: JSON.parse(JSON.stringify(nextNodes)), edges: JSON.parse(JSON.stringify(nextEdges)) }],
+      historyIndex: 0,
     });
   },
 
@@ -945,10 +1041,14 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     const newIndex = historyIndex - 1;
     const state = history[newIndex];
     
+    const nextNodes = JSON.parse(JSON.stringify(state.nodes)) as Node<NodeData>[];
+    const nextEdges = JSON.parse(JSON.stringify(state.edges)) as Edge<EdgeData>[];
     set({
-      nodes: JSON.parse(JSON.stringify(state.nodes)),
-      edges: JSON.parse(JSON.stringify(state.edges)),
+      nodes: nextNodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+      edges: nextEdges.map((e) => (e.selected ? { ...e, selected: false } : e)),
       historyIndex: newIndex,
+      selectedNodeIds: [],
+      selectedEdgeIds: [],
       selectedNodeId: null,
       selectedEdgeId: null,
     });
@@ -962,10 +1062,14 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     const newIndex = historyIndex + 1;
     const state = history[newIndex];
     
+    const nextNodes = JSON.parse(JSON.stringify(state.nodes)) as Node<NodeData>[];
+    const nextEdges = JSON.parse(JSON.stringify(state.edges)) as Edge<EdgeData>[];
     set({
-      nodes: JSON.parse(JSON.stringify(state.nodes)),
-      edges: JSON.parse(JSON.stringify(state.edges)),
+      nodes: nextNodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+      edges: nextEdges.map((e) => (e.selected ? { ...e, selected: false } : e)),
       historyIndex: newIndex,
+      selectedNodeIds: [],
+      selectedEdgeIds: [],
       selectedNodeId: null,
       selectedEdgeId: null,
     });
@@ -983,15 +1087,13 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
   // Copy selected nodes
   copySelected: () => {
-    const { nodes, edges, selectedNodeId } = get();
-    if (!selectedNodeId) return;
-    
-    // Get selected node
-    const selectedNode = nodes.find(n => n.id === selectedNodeId);
-    if (!selectedNode) return;
-    
-    // For now, copy single node (could extend to multiple selection)
-    const nodesToCopy = [selectedNode];
+    const { nodes, edges, selectedNodeIds } = get();
+    if (selectedNodeIds.length === 0) return;
+
+    const selectedSet = new Set(selectedNodeIds);
+    const nodesToCopy = nodes.filter((n) => selectedSet.has(n.id));
+    if (nodesToCopy.length === 0) return;
+
     const nodeIds = new Set(nodesToCopy.map(n => n.id));
     
     // Copy edges between copied nodes
@@ -1011,9 +1113,6 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   paste: () => {
     const { clipboard } = get();
     if (!clipboard || clipboard.nodes.length === 0) return;
-    
-    // Push history before pasting
-    get().pushHistory();
     
     // Create new IDs for pasted nodes
     const idMap = new Map<string, string>();
@@ -1044,11 +1143,16 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       target: idMap.get(edge.target) || edge.target,
     }));
     
+    clearPendingHistoryCommit();
     set((state) => ({
       nodes: [...state.nodes.map(n => ({ ...n, selected: false })), ...newNodes],
-      edges: [...state.edges, ...newEdges],
-      selectedNodeId: newNodes[0]?.id || null,
+      edges: [...state.edges.map((e) => ({ ...e, selected: false })), ...newEdges],
+      selectedNodeIds: newNodes.map((n) => n.id),
+      selectedEdgeIds: [],
+      selectedNodeId: newNodes.length === 1 ? newNodes[0].id : null,
+      selectedEdgeId: null,
     }));
+    get().pushHistory();
   },
 
   // Load a predefined template
@@ -1059,9 +1163,6 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       return;
     }
     
-    // Push current state to history before loading template
-    get().pushHistory();
-    
     // Reset node counter based on template nodes
     const maxId = template.nodes.reduce((max, node) => {
       const match = node.id.match(/node_(\d+)/);
@@ -1069,15 +1170,20 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     }, 0);
     nodeIdCounter = Math.max(nodeIdCounter, maxId + 1);
     
+    const nextNodes = JSON.parse(JSON.stringify(template.nodes)) as Node<NodeData>[];
+    const nextEdges = JSON.parse(JSON.stringify(template.edges)) as Edge<EdgeData>[];
+    clearPendingHistoryCommit();
     set({
-      nodes: JSON.parse(JSON.stringify(template.nodes)),
-      edges: JSON.parse(JSON.stringify(template.edges)),
+      nodes: nextNodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+      edges: nextEdges.map((e) => (e.selected ? { ...e, selected: false } : e)),
+      selectedNodeIds: [],
+      selectedEdgeIds: [],
       selectedNodeId: null,
       selectedEdgeId: null,
       isRunning: false,
       currentTick: 0,
-      history: [],
-      historyIndex: -1,
+      history: [{ nodes: JSON.parse(JSON.stringify(nextNodes)), edges: JSON.parse(JSON.stringify(nextEdges)) }],
+      historyIndex: 0,
     });
   },
 

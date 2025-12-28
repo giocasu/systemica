@@ -88,12 +88,14 @@ npm run dev
 | 🏃 Slider | Velocità simulazione (0.1x - 5x) |
 | ↩️ Undo | Annulla ultima azione (Ctrl+Z) |
 | ↪️ Redo | Ripristina azione (Ctrl+Y) |
-| 📋 Copy | Copia nodo selezionato (Ctrl+C) |
+| 📋 Copy | Copia nodo/i selezionato/i (Ctrl+C) |
 | 📄 Paste | Incolla nodo (Ctrl+V) |
 | 💾 Save | Salva progetto come JSON |
 | 📂 Load | Carica progetto JSON |
 | 📊 CSV | Esporta statistiche simulazione |
 | 📋 Templates | Carica scenario predefinito |
+| 🔗 Share | Copia link condivisibile negli appunti |
+| 🧹 Clear | Pulisce il canvas (mantiene undo) |
 
 ### Palette Nodi
 
@@ -259,8 +261,12 @@ Il flow rate è visualizzato come etichetta sulla connessione.
 La simulazione procede per **tick** discreti. Ad ogni tick:
 
 1. **Fase 1:** I Source producono risorse (se probability check passa)
-2. **Fase 2:** Le risorse fluiscono attraverso le connessioni
-3. **Fase 3:** I Converter processano le risorse accumulate
+2. **Fase 2:** Le risorse fluiscono attraverso le connessioni (basandosi sullo **snapshot a inizio tick**)
+3. **Fase 3:** I Converter processano le risorse accumulate (dallo **snapshot a inizio tick**)
+
+Note:
+- Le risorse ricevute durante un tick diventano disponibili per essere processate/inoltrate al **tick successivo** (quindi le catene richiedono più tick).
+- Le sorgenti possono produrre e inviare nello stesso tick; la buffer capacity limita solo ciò che resta in buffer dopo l’invio.
 
 ### Controlli
 
@@ -557,8 +563,12 @@ Sia la modalità **Formula** che **Script** includono un pulsante **✓ Validate
 | `Ctrl + Z` | Undo (annulla) |
 | `Ctrl + Y` | Redo (ripristina) |
 | `Ctrl + Shift + Z` | Redo (alternativo) |
-| `Ctrl + C` | Copia nodo selezionato |
+| `Ctrl + C` | Copia nodo/i selezionato/i |
 | `Ctrl + V` | Incolla nodo |
+
+Selezione:
+- `Shift + Click` aggiunge/rimuove nodi dalla selezione
+- `Shift + Drag` seleziona più nodi con riquadro
 
 ---
 

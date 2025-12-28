@@ -7,7 +7,7 @@ import {
   MiniMap,
   useReactFlow,
   ReactFlowProvider,
-  Edge,
+  OnSelectionChangeParams,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -35,8 +35,11 @@ function Flow() {
     onEdgesChange,
     onConnect,
     addNode,
+    selectedNodeIds,
+    selectedEdgeIds,
     selectedNodeId,
     selectedEdgeId,
+    setSelection,
     setSelectedNode,
     setSelectedEdge,
     deleteSelectedNode,
@@ -135,9 +138,9 @@ function Flow() {
       
       // Delete
       if (event.key === 'Delete' || event.key === 'Backspace') {
-        if (selectedNodeId) {
+        if (selectedNodeIds.length > 0) {
           deleteSelectedNode();
-        } else if (selectedEdgeId) {
+        } else if (selectedEdgeIds.length > 0) {
           deleteSelectedEdge();
         }
       }
@@ -145,22 +148,14 @@ function Flow() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodeId, selectedEdgeId, deleteSelectedNode, deleteSelectedEdge, undo, redo, copySelected, paste]);
+  }, [selectedNodeIds, selectedEdgeIds, deleteSelectedNode, deleteSelectedEdge, undo, redo, copySelected, paste]);
 
-  // Handle node selection
-  const onNodeClick = useCallback((_: React.MouseEvent, node: { id: string }) => {
-    setSelectedNode(node.id);
-  }, [setSelectedNode]);
-
-  // Handle edge selection
-  const onEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
-    setSelectedEdge(edge.id);
-  }, [setSelectedEdge]);
-
-  const onPaneClick = useCallback(() => {
-    setSelectedNode(null);
-    setSelectedEdge(null);
-  }, [setSelectedNode, setSelectedEdge]);
+  const onSelectionChange = useCallback(({ nodes: selectedNodes, edges: selectedEdges }: OnSelectionChangeParams) => {
+    setSelection(
+      selectedNodes.map((n) => n.id),
+      selectedEdges.map((e) => e.id)
+    );
+  }, [setSelection]);
 
   // Handle drag and drop from toolbar
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -217,12 +212,12 @@ function Flow() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          onNodeClick={onNodeClick}
-          onEdgeClick={onEdgeClick}
-          onPaneClick={onPaneClick}
+          onSelectionChange={onSelectionChange}
           onDragOver={onDragOver}
           onDrop={onDrop}
           nodeTypes={nodeTypes}
+          multiSelectionKeyCode="Shift"
+          selectionKeyCode="Shift"
           fitView
           snapToGrid
           snapGrid={[20, 20]}

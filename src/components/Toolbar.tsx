@@ -8,7 +8,7 @@ export function Toolbar() {
     toggleRunning, 
     step, 
     reset,
-    newProject,
+    clearCanvas,
     exportToFile, 
     importFromFile,
     ticksPerSecond,
@@ -19,7 +19,7 @@ export function Toolbar() {
     canRedo,
     copySelected,
     paste,
-    selectedNodeId,
+    selectedNodeIds,
     clipboard,
     exportStatsToCSV,
     resourceHistory,
@@ -33,8 +33,8 @@ export function Toolbar() {
       localStorage.removeItem('game-economy-simulator');
       return;
     }
-    if (confirm('Create new project? Unsaved changes will be lost.')) {
-      newProject();
+    if (confirm('Clear canvas? (You can undo with Ctrl+Z)')) {
+      clearCanvas();
       localStorage.removeItem('game-economy-simulator');
     }
   };
@@ -97,14 +97,14 @@ export function Toolbar() {
       <div className="controls">
         <button onClick={undo} disabled={!canUndo()} title="Undo (Ctrl+Z)">↩️</button>
         <button onClick={redo} disabled={!canRedo()} title="Redo (Ctrl+Y)">↪️</button>
-        <button onClick={copySelected} disabled={!selectedNodeId} title="Copy (Ctrl+C)">📋</button>
+        <button onClick={copySelected} disabled={selectedNodeIds.length === 0} title="Copy (Ctrl+C)">📋</button>
         <button onClick={paste} disabled={!clipboard} title="Paste (Ctrl+V)">📄</button>
       </div>
 
       <span className="separator">|</span>
 
       <div className="controls">
-        <button onClick={handleNew} title="New project (clear canvas)">🗑️ Clear</button>
+        <button onClick={handleNew} title="Clear canvas (undoable)">🗑️ Clear</button>
         <button onClick={handleSave}>💾 Save</button>
         <button onClick={handleLoad}>📂 Load</button>
         <button onClick={exportStatsToCSV} disabled={resourceHistory.length === 0} title="Export stats to CSV">📊 CSV</button>
