@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSimulatorStore } from '../store/simulatorStore';
 import { NodeData, nodeConfig, ProcessingMode, DistributionMode } from '../types';
 import { validateFormula } from '../utils/formulaEvaluator';
@@ -16,6 +16,8 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
   const [scriptError, setScriptError] = useState<string | null>(null);
   const [scriptValid, setScriptValid] = useState<boolean>(false);
   const [validatingScript, setValidatingScript] = useState(false);
+  const [capacityDraft, setCapacityDraft] = useState<string | null>(null);
+  const [maxProductionDraft, setMaxProductionDraft] = useState<string | null>(null);
 
   if (!node) return null;
 
@@ -37,6 +39,11 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
     // Also update legacy flag for backwards compatibility
     handleChange('useFormula', mode === 'formula');
   };
+
+  useEffect(() => {
+    setCapacityDraft(null);
+    setMaxProductionDraft(null);
+  }, [nodeId]);
 
   return (
     <div className="properties-panel">
@@ -74,10 +81,26 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
           <label>Buffer Capacity (-1 = unlimited)</label>
           <input
             type="number"
-            value={data.capacity}
+            value={capacityDraft ?? String(data.capacity)}
             min={-1}
             step={1}
-            onChange={(e) => handleChange('capacity', parseFloat(e.target.value) || -1)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setCapacityDraft(next);
+              if (next.trim() === '') return;
+              const parsed = parseFloat(next);
+              if (Number.isNaN(parsed)) return;
+              handleChange('capacity', parsed);
+            }}
+            onBlur={() => {
+              if (capacityDraft === null) return;
+              const next = capacityDraft.trim();
+              setCapacityDraft(null);
+              if (next === '') return;
+              const parsed = parseFloat(next);
+              if (Number.isNaN(parsed)) return;
+              handleChange('capacity', parsed);
+            }}
           />
         </div>
       )}
@@ -89,10 +112,26 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
             <label>Max Total Production (-1 = infinite)</label>
             <input
               type="number"
-              value={data.maxProduction}
+              value={maxProductionDraft ?? String(data.maxProduction)}
               min={-1}
               step={1}
-              onChange={(e) => handleChange('maxProduction', parseFloat(e.target.value) || -1)}
+              onChange={(e) => {
+                const next = e.target.value;
+                setMaxProductionDraft(next);
+                if (next.trim() === '') return;
+                const parsed = parseFloat(next);
+                if (Number.isNaN(parsed)) return;
+                handleChange('maxProduction', parsed);
+              }}
+              onBlur={() => {
+                if (maxProductionDraft === null) return;
+                const next = maxProductionDraft.trim();
+                setMaxProductionDraft(null);
+                if (next === '') return;
+                const parsed = parseFloat(next);
+                if (Number.isNaN(parsed)) return;
+                handleChange('maxProduction', parsed);
+              }}
             />
           </div>
           {data.maxProduction !== -1 && (
