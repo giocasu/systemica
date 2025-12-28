@@ -48,11 +48,8 @@ export function DraggableToolbar({
   const [shareMessage, setShareMessage] = useState<string | null>(null);
 
   const handleNew = () => {
-    if (nodes.length > 0) {
-      if (confirm('Create new project? Unsaved changes will be lost.')) {
-        newProject();
-      }
-    }
+    if (nodes.length === 0) return;
+    if (confirm('Create new project? Unsaved changes will be lost.')) newProject();
   };
 
   const handleSave = () => {
@@ -99,7 +96,14 @@ export function DraggableToolbar({
     >
       <div ref={nodeRef} className={`draggable-toolbar ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="toolbar-header">
-          <span className="toolbar-title">🎮 Game Economy Simulator</span>
+          <span className="toolbar-title">
+            <img
+              src={`${import.meta.env.BASE_URL}logo.svg`}
+              alt="Systemica"
+              className="toolbar-logo"
+            />
+            Systemica
+          </span>
           <div className="toolbar-header-controls">
             <button 
               className="toolbar-collapse-btn"

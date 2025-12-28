@@ -17,7 +17,7 @@ export function EdgePropertiesPanel({ edgeId }: EdgePropertiesPanelProps) {
   };
 
   return (
-    <div className="properties-panel">
+    <div className="properties-panel edge-properties-panel">
       <h3>🔗 Connection Properties</h3>
 
       <div className="property-group">

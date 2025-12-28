@@ -4,7 +4,6 @@ import {
   Controls,
   Background,
   BackgroundVariant,
-  Panel,
   MiniMap,
   useReactFlow,
   ReactFlowProvider,
@@ -14,19 +13,18 @@ import '@xyflow/react/dist/style.css';
 
 import { useSimulatorStore } from './store/simulatorStore';
 import { nodeTypes } from './nodes';
-import { Toolbar } from './components/Toolbar';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { EdgePropertiesPanel } from './components/EdgePropertiesPanel';
 import { StatusBar } from './components/StatusBar';
 import { ResourceChart } from './components/ResourceChart';
 import { NodePalette } from './components/NodePalette';
+import { DraggableToolbar } from './components/DraggableToolbar';
+import { DraggablePanel } from './components/DraggablePanel';
 import { NodeType } from './types';
 import { 
   saveToLocalStorage, 
   loadFromLocalStorage, 
   parseShareableLink,
-  generateShareableLink,
-  copyToClipboard 
 } from './utils/persistence';
 
 function Flow() {
@@ -55,7 +53,6 @@ function Flow() {
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
-  const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [showChart, setShowChart] = useState(true);
   const initialLoadDone = useRef(false);
 
@@ -95,19 +92,6 @@ function Flow() {
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [nodes, edges]);
-
-  // Generate share link
-  const handleShare = useCallback(async () => {
-    try {
-      const url = await generateShareableLink(nodes, edges);
-      await copyToClipboard(url);
-      setShareMessage('✅ Link copied!');
-      setTimeout(() => setShareMessage(null), 3000);
-    } catch {
-      setShareMessage('❌ Failed to generate link');
-      setTimeout(() => setShareMessage(null), 3000);
-    }
   }, [nodes, edges]);
 
   // Handle keyboard shortcuts
@@ -211,7 +195,18 @@ function Flow() {
 
   return (
     <div className="app">
-      <Toolbar />
+      <DraggableToolbar
+        onToggleChart={() => setShowChart((prev) => !prev)}
+        showChart={showChart}
+      />
+      <DraggablePanel
+        title="🧩 Nodes"
+        defaultPosition={{ x: 10, y: 120 }}
+        className="palette-draggable"
+        minWidth={260}
+      >
+        <NodePalette />
+      </DraggablePanel>
       <div className="flow-wrapper" ref={reactFlowWrapper}>
         <ReactFlow
           nodes={nodes}
@@ -250,45 +245,52 @@ function Flow() {
             style={{ background: '#0a0a1a' }}
           />
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#2a2a4e" />
-          <Panel position="top-left">
-            <div className="share-panel">
-              <button 
-                className="share-btn" 
-                onClick={handleShare}
-                disabled={nodes.length === 0}
-                title="Copy shareable link"
-              >
-                🔗 Share
-              </button>
-              <button 
-                className="share-btn" 
-                onClick={() => setShowChart(!showChart)}
-                title={showChart ? 'Hide chart' : 'Show chart'}
-              >
-                📊 {showChart ? 'Hide' : 'Show'} Chart
-              </button>
-              {shareMessage && <span className="share-message">{shareMessage}</span>}
-            </div>
-          </Panel>
-          <Panel position="top-left" style={{ top: 60 }}>
-            <div className="node-palette-panel">
-              <div className="palette-header">🧩 Nodes</div>
-              <NodePalette />
-            </div>
-          </Panel>
-          {showChart && (
-            <Panel position="bottom-right">
-              <div className="chart-panel">
-                <ResourceChart />
-              </div>
-            </Panel>
-          )}
         </ReactFlow>
       </div>
+
+      {showChart && (
+        <DraggablePanel
+          title="📊 Chart"
+          defaultPosition={{
+            x: typeof window !== 'undefined' ? Math.max(10, window.innerWidth - 420) : 10,
+            y: typeof window !== 'undefined' ? Math.max(10, window.innerHeight - 320) : 10,
+          }}
+          onClose={() => setShowChart(false)}
+          className="chart-draggable"
+          minWidth={380}
+        >
+          <ResourceChart />
+        </DraggablePanel>
+      )}
       
-      {/* Fixed Properties Panel */}
-      {selectedNodeId && <PropertiesPanel nodeId={selectedNodeId} />}
-      {selectedEdgeId && <EdgePropertiesPanel edgeId={selectedEdgeId} />}
+      {selectedNodeId && (
+        <DraggablePanel
+          title="📝 Properties"
+          defaultPosition={{
+            x: typeof window !== 'undefined' ? Math.max(10, window.innerWidth - 320) : 10,
+            y: 80,
+          }}
+          onClose={() => setSelectedNode(null)}
+          className="properties-draggable"
+          minWidth={280}
+        >
+          <PropertiesPanel nodeId={selectedNodeId} />
+        </DraggablePanel>
+      )}
+      {selectedEdgeId && (
+        <DraggablePanel
+          title="🔗 Connection"
+          defaultPosition={{
+            x: typeof window !== 'undefined' ? Math.max(10, window.innerWidth - 320) : 10,
+            y: 80,
+          }}
+          onClose={() => setSelectedEdge(null)}
+          className="properties-draggable"
+          minWidth={280}
+        >
+          <EdgePropertiesPanel edgeId={selectedEdgeId} />
+        </DraggablePanel>
+      )}
       
       <StatusBar />
     </div>
