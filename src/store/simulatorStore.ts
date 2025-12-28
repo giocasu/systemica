@@ -325,21 +325,41 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       if (node.data.nodeType === 'source' && node.data.isActive) {
         const maxProd = node.data.maxProduction ?? -1;
         const totalProduced = node.data.totalProduced ?? 0;
+        const capacity = node.data.capacity ?? -1;
         
         // Check if source is exhausted (max production reached)
         if (maxProd !== -1 && totalProduced >= maxProd) {
           sourceProductionThisTick.set(node.id, 0);
           continue; // Source exhausted, don't produce
         }
+        // If buffer is full, don't produce
+        if (capacity !== -1 && node.data.resources >= capacity) {
+          sourceProductionThisTick.set(node.id, 0);
+          continue;
+        }
         
         const prob = node.data.probability ?? 100;
         if (checkProbability(prob)) {
           let production = getProductionRate(node);
+          if (!Number.isFinite(production) || production <= 0) {
+            sourceProductionThisTick.set(node.id, 0);
+            continue;
+          }
           
           // Limit production to not exceed max production
           if (maxProd !== -1) {
             const remaining = maxProd - totalProduced;
             production = Math.min(production, remaining);
+          }
+
+          // Limit production to not exceed buffer capacity (if any)
+          if (capacity !== -1) {
+            const remainingSpace = Math.max(0, capacity - node.data.resources);
+            production = Math.min(production, remainingSpace);
+          }
+          if (production <= 0) {
+            sourceProductionThisTick.set(node.id, 0);
+            continue;
           }
           
           // Add to buffer (resources)
