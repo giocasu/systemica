@@ -19,6 +19,11 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
   const [capacityDraft, setCapacityDraft] = useState<string | null>(null);
   const [maxProductionDraft, setMaxProductionDraft] = useState<string | null>(null);
 
+  useEffect(() => {
+    setCapacityDraft(null);
+    setMaxProductionDraft(null);
+  }, [nodeId]);
+
   if (!node) return null;
 
   const data = node.data as NodeData;
@@ -40,11 +45,6 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
     handleChange('useFormula', mode === 'formula');
   };
 
-  useEffect(() => {
-    setCapacityDraft(null);
-    setMaxProductionDraft(null);
-  }, [nodeId]);
-
   return (
     <div className="properties-panel">
       <h3>📝 Properties</h3>
@@ -65,7 +65,13 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
 
       {/* Resources - buffer for all nodes */}
       <div className="property-group">
-        <label>{data.nodeType === 'source' ? 'Buffer' : 'Resources'}</label>
+        <label>
+          {data.nodeType === 'source'
+            ? 'Buffer'
+            : data.nodeType === 'drain'
+              ? 'Consumed (counter)'
+              : 'Resources'}
+        </label>
         <input
           type="number"
           value={data.resources}
@@ -73,6 +79,11 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
           step={0.1}
           onChange={(e) => handleChange('resources', parseFloat(e.target.value) || 0)}
         />
+        {data.nodeType === 'drain' && (
+          <div className="property-group info">
+            <span>🧾 This counter increases when resources are drained.</span>
+          </div>
+        )}
       </div>
 
       {/* Capacity for Pool and Source buffer */}

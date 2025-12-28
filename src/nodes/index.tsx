@@ -8,10 +8,6 @@ interface CustomNodeProps {
   selected?: boolean;
 }
 
-interface BaseNodeProps extends CustomNodeProps {
-  className: string;
-}
-
 // Helper to get processing mode (supports legacy useFormula)
 const getMode = (data: NodeData): ProcessingMode => {
   return data.processingMode || (data.useFormula ? 'formula' : 'fixed');
@@ -25,23 +21,6 @@ const formatResources = (val: number): string => {
   return parseFloat(val.toFixed(2)).toString();
 };
 
-// Base node component
-function BaseNode({ data, selected, className }: BaseNodeProps) {
-  return (
-    <div className={`custom-node ${className} ${selected ? 'selected' : ''}`}>
-      <Handle type="target" position={Position.Left} />
-      <div className="node-label">{data.label}</div>
-      <div className="node-value">{formatResources(data.resources)}</div>
-      {data.productionRate > 0 && (
-        <div className="node-rate">+{data.productionRate}/tick</div>
-      )}
-      {data.capacity > 0 && (
-        <div className="node-rate">max: {data.capacity}</div>
-      )}
-      <Handle type="source" position={Position.Right} />
-    </div>
-  );
-}
 
 // Source Node - produces resources (NO input handle - sources only produce)
 export const SourceNode = memo(({ data, selected }: CustomNodeProps) => {
@@ -49,21 +28,31 @@ export const SourceNode = memo(({ data, selected }: CustomNodeProps) => {
   const maxProd = data.maxProduction ?? -1;
   const totalProduced = data.totalProduced ?? 0;
   const isExhausted = maxProd !== -1 && totalProduced >= maxProd;
+  const lastProduced = typeof data.lastProduced === 'number' ? data.lastProduced : 0;
+  const activeClass = lastProduced > 0 ? 'source-active' : '';
+  const modePrefix =
+    mode === 'script'
+      ? '📜'
+      : mode === 'formula' && data.formula
+        ? '📐'
+        : '📊';
   
   return (
-    <div className={`custom-node node-source ${selected ? 'selected' : ''} ${isExhausted ? 'exhausted' : ''}`}>
+    <div className={`custom-node node-source ${activeClass} ${selected ? 'selected' : ''} ${isExhausted ? 'exhausted' : ''}`}>
       <div className="node-label">{data.label}</div>
       <div className="node-value">{formatResources(data.resources)}</div>
-      {isExhausted ? (
-        <div className="node-rate exhausted-label">⛔ exhausted</div>
-      ) : maxProd !== -1 ? (
+      {isExhausted && <div className="node-rate exhausted-label">⛔ exhausted</div>}
+      {!isExhausted && maxProd !== -1 && (
         <div className="node-rate">{formatResources(totalProduced)}/{maxProd}</div>
-      ) : mode === 'script' ? (
+      )}
+      {!isExhausted && lastProduced > 0 ? (
+        <div className="node-rate">{modePrefix} +{formatResources(lastProduced)}/tick</div>
+      ) : !isExhausted && mode === 'script' ? (
         <div className="node-rate">📜 script</div>
-      ) : mode === 'formula' && data.formula ? (
+      ) : !isExhausted && mode === 'formula' && data.formula ? (
         <div className="node-rate">📐 f(x)</div>
-      ) : data.productionRate > 0 ? (
-        <div className="node-rate">+{data.productionRate}/tick</div>
+      ) : !isExhausted && data.productionRate > 0 ? (
+        <div className="node-rate">+{formatResources(data.productionRate)}/tick</div>
       ) : null}
       <Handle type="source" position={Position.Right} />
     </div>
@@ -71,21 +60,46 @@ export const SourceNode = memo(({ data, selected }: CustomNodeProps) => {
 });
 
 // Pool Node - stores resources
-export const PoolNode = memo(({ data, selected }: CustomNodeProps) => (
-  <BaseNode data={data} selected={selected} className="node-pool" />
-));
+export const PoolNode = memo(({ data, selected }: CustomNodeProps) => {
+  const lastReceived = typeof data.lastReceived === 'number' ? data.lastReceived : 0;
+  const activeClass = lastReceived > 0 ? 'pool-active' : '';
+  return (
+    <div className={`custom-node node-pool ${activeClass} ${selected ? 'selected' : ''}`}>
+      <Handle type="target" position={Position.Left} />
+      <div className="node-label">{data.label}</div>
+      <div className="node-value">{formatResources(data.resources)}</div>
+      {data.capacity > 0 && <div className="node-rate">max: {formatResources(data.capacity)}</div>}
+      {lastReceived > 0 && <div className="node-rate">+{formatResources(lastReceived)}/tick</div>}
+      <Handle type="source" position={Position.Right} />
+    </div>
+  );
+});
 
 // Drain Node - consumes resources
-export const DrainNode = memo(({ data, selected }: CustomNodeProps) => (
-  <BaseNode data={data} selected={selected} className="node-drain" />
-));
+export const DrainNode = memo(({ data, selected }: CustomNodeProps) => {
+  const lastConsumed = typeof data.lastConsumed === 'number' ? data.lastConsumed : 0;
+  const activeClass = lastConsumed > 0 ? 'drain-active' : '';
+  return (
+    <div className={`custom-node node-drain ${activeClass} ${selected ? 'selected' : ''}`}>
+      <Handle type="target" position={Position.Left} />
+      <div className="node-label">{data.label}</div>
+      <div className="node-value">{formatResources(data.resources)}</div>
+      {lastConsumed > 0 && (
+        <div className="node-rate">-{formatResources(lastConsumed)}/tick</div>
+      )}
+      <Handle type="source" position={Position.Right} />
+    </div>
+  );
+});
 
 // Converter Node - transforms resources
 export const ConverterNode = memo(({ data, selected }: CustomNodeProps) => {
   const mode = getMode(data);
+  const lastConverted = typeof data.lastConverted === 'number' ? data.lastConverted : 0;
+  const activeClass = lastConverted > 0 ? 'converter-active' : '';
   
   return (
-    <div className={`custom-node node-converter ${selected ? 'selected' : ''}`}>
+    <div className={`custom-node node-converter ${activeClass} ${selected ? 'selected' : ''}`}>
       <Handle type="target" position={Position.Left} />
       <div className="node-label">{data.label}</div>
       <div className="node-value">{data.resources}</div>
@@ -96,6 +110,7 @@ export const ConverterNode = memo(({ data, selected }: CustomNodeProps) => {
       ) : (
         <div className="node-ratio">⚙️ {data.inputRatio}→{data.outputRatio}</div>
       )}
+      {lastConverted > 0 && <div className="node-rate">→ +{formatResources(lastConverted)}/tick</div>}
       <Handle type="source" position={Position.Right} />
     </div>
   );

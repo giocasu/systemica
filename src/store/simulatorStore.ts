@@ -204,6 +204,10 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         lastDistributionIndex: defaults.lastDistributionIndex ?? 0,
         maxProduction: defaults.maxProduction ?? -1,
         totalProduced: defaults.totalProduced ?? 0,
+        lastConsumed: defaults.lastConsumed ?? 0,
+        lastProduced: defaults.lastProduced ?? 0,
+        lastReceived: defaults.lastReceived ?? 0,
+        lastConverted: defaults.lastConverted ?? 0,
       },
     };
 
@@ -282,6 +286,20 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     
     // Create a map for quick lookup
     const nodeMap = new Map(nodes.map((n) => [n.id, { ...n, data: { ...n.data } }]));
+    for (const node of nodeMap.values()) {
+      if (node.data.nodeType === 'source') {
+        node.data.lastProduced = 0;
+      }
+      if (node.data.nodeType === 'pool') {
+        node.data.lastReceived = 0;
+      }
+      if (node.data.nodeType === 'converter') {
+        node.data.lastConverted = 0;
+      }
+      if (node.data.nodeType === 'drain') {
+        node.data.lastConsumed = 0;
+      }
+    }
 
     // Helper function to check probability
     const checkProbability = (prob: number): boolean => {
@@ -436,9 +454,15 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
                 source.data.resources -= actualFlow;
               }
               
-              // Add to target (except for drain nodes)
-              if (target.data.nodeType !== 'drain') {
+              // Add to target
+              if (target.data.nodeType === 'drain') {
                 target.data.resources += actualFlow;
+                target.data.lastConsumed = (target.data.lastConsumed ?? 0) + actualFlow;
+              } else {
+                target.data.resources += actualFlow;
+                if (target.data.nodeType === 'pool') {
+                  target.data.lastReceived = (target.data.lastReceived ?? 0) + actualFlow;
+                }
               }
             }
           }
@@ -465,11 +489,17 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
                   source.data.resources -= 1;
                 }
                 
-                // Add to target (except for drain nodes)
-                if (target.data.nodeType !== 'drain') {
+                // Add to target
+                if (target.data.nodeType === 'drain') {
                   target.data.resources += 1;
+                  target.data.lastConsumed = (target.data.lastConsumed ?? 0) + 1;
+                } else {
+                  target.data.resources += 1;
+                  if (target.data.nodeType === 'pool') {
+                    target.data.lastReceived = (target.data.lastReceived ?? 0) + 1;
+                  }
                 }
-                
+              
                 remaining -= 1;
                 lastIndex = (idx + 1) % validEdges.length;
                 found = true;
@@ -513,6 +543,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         if (actualProduced > 0) {
           source.data.totalProduced = (source.data.totalProduced ?? 0) + actualProduced;
         }
+        source.data.lastProduced = actualProduced;
       }
     }
 
@@ -538,6 +569,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       if (actualProduced > 0) {
         node.data.totalProduced = (node.data.totalProduced ?? 0) + actualProduced;
       }
+      node.data.lastProduced = actualProduced;
     }
 
     // Phase 3: Process converters
@@ -615,13 +647,20 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
             
             const actualOutput = Math.min(outputPerEdge, targetSpace);
             
-            if (actualOutput > 0 && target.data.nodeType !== 'drain') {
-              target.data.resources += actualOutput;
-              actualOutputUsed += actualOutput;
-            } else if (target.data.nodeType === 'drain') {
+            if (actualOutput > 0) {
+              if (target.data.nodeType === 'drain') {
+                target.data.resources += actualOutput;
+                target.data.lastConsumed = (target.data.lastConsumed ?? 0) + actualOutput;
+              } else {
+                target.data.resources += actualOutput;
+                if (target.data.nodeType === 'pool') {
+                  target.data.lastReceived = (target.data.lastReceived ?? 0) + actualOutput;
+                }
+              }
               actualOutputUsed += actualOutput;
             }
           }
+          node.data.lastConverted = actualOutputUsed;
           
           // Consume input proportionally to actual output
           if (node.data.useFormula) {
