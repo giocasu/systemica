@@ -203,7 +203,7 @@ function Flow() {
         className="palette-draggable"
         minWidth={260}
       >
-        <NodePalette />
+        <NodePalette flowWrapperRef={reactFlowWrapper} />
       </DraggablePanel>
       <div className="flow-wrapper" ref={reactFlowWrapper}>
         <ReactFlow

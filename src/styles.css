@@ -22,6 +22,7 @@ body {
   background: #1a1a2e;
   position: relative;
   overflow: hidden;
+  touch-action: none;
 }
 
 /* React Flow customization */
@@ -1164,6 +1165,7 @@ body {
   border-radius: 6px;
   cursor: grab;
   user-select: none;
+  touch-action: none;
   transition: all 0.2s;
 }
 
@@ -1183,6 +1185,25 @@ body {
 .palette-item-vertical .palette-label {
   font-size: 0.85rem;
   color: #fff;
+}
+
+.palette-drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #0f3460;
+  border: 1px solid #e94560;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  opacity: 0.9;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 2000;
 }
 
 /* Node Palette Panel (fixed) */
