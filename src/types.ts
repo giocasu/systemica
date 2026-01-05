@@ -4,6 +4,9 @@ export type NodeType = 'source' | 'pool' | 'drain' | 'converter' | 'gate';
 // Processing mode: fixed rate, formula expression, or full script
 export type ProcessingMode = 'fixed' | 'formula' | 'script';
 
+// Source activation mode: automatic per tick or manual click
+export type ActivationMode = 'auto' | 'manual';
+
 // Distribution mode: how resources are distributed to multiple outputs
 // continuous: divisible resources (water, energy) - split equally
 // discrete: atomic resources (items, cards) - round robin
@@ -28,6 +31,8 @@ export interface NodeData extends Record<string, unknown> {
   gateThreshold: number;    // threshold for condition
   // Processing mode
   processingMode: ProcessingMode;
+  // Source activation mode
+  activationMode?: ActivationMode;
   // Formula for 'formula' mode (simple expression)
   formula: string;          // e.g., "resources * 0.1" or "10 + tick * 0.5"
   useFormula: boolean;      // DEPRECATED: use processingMode instead
@@ -66,6 +71,7 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     inputRatio: 1,
     outputRatio: 1,
     probability: 100,
+    activationMode: 'auto',
     processingMode: 'fixed',
     formula: '',
     useFormula: false,

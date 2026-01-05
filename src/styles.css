@@ -859,6 +859,32 @@ body {
   margin-top: 4px;
 }
 
+.custom-node .node-action {
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+  cursor: pointer;
+}
+
+.custom-node .node-action:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.custom-node .node-action:active {
+  transform: translateY(1px);
+}
+
+.custom-node .node-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(0, 0, 0, 0.15);
+}
+
 /* Node type colors */
 .node-source {
   background: linear-gradient(135deg, #4ade80, #22c55e);

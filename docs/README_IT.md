@@ -115,7 +115,7 @@ Trascina i nodi dalla palette sul canvas:
 
 ### ⬆️ Source (Sorgente)
 
-Produce risorse automaticamente ad ogni tick.
+Produce risorse automaticamente ad ogni tick oppure manualmente con click.
 
 | Proprietà | Descrizione |
 |-----------|-------------|
@@ -125,6 +125,7 @@ Produce risorse automaticamente ad ogni tick.
 | Max Total Production | Totale risorse producibili (-1 = infinito) |
 | Production Rate | Risorse prodotte per tick (supporta decimali: 0.1, 0.5, etc.) |
 | Distribution Mode | **Continuous** (dividi equamente) o **Discrete** (round-robin) |
+| Activation Mode | **Auto** (per tick) o **Manual** (click per produrre) |
 | Probability | % di attivazione per tick (0-100) |
 | Processing Mode | Fixed rate, Formula, o Script |
 

@@ -1,9 +1,11 @@
 import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { NodeData, ProcessingMode } from '../types';
+import { useSimulatorStore } from '../store/simulatorStore';
 
 // Props for our custom nodes
 interface CustomNodeProps {
+  id: string;
   data: NodeData;
   selected?: boolean;
 }
@@ -23,8 +25,11 @@ const formatResources = (val: number): string => {
 
 
 // Source Node - produces resources (NO input handle - sources only produce)
-export const SourceNode = memo(({ data, selected }: CustomNodeProps) => {
+export const SourceNode = memo(({ id, data, selected }: CustomNodeProps) => {
+  const triggerSource = useSimulatorStore((state) => state.triggerSource);
+  const isRunning = useSimulatorStore((state) => state.isRunning);
   const mode = getMode(data);
+  const activationMode = data.activationMode ?? 'auto';
   const maxProd = data.maxProduction ?? -1;
   const totalProduced = data.totalProduced ?? 0;
   const isExhausted = maxProd !== -1 && totalProduced >= maxProd;
@@ -48,7 +53,18 @@ export const SourceNode = memo(({ data, selected }: CustomNodeProps) => {
       )}
       {!isExhausted && lastProduced > 0 ? (
         <div className="node-rate">
-          {modePrefix} +{formatResources(lastProduced)}/tick{lastSent > 0 ? ` (out ${formatResources(lastSent)})` : ''}
+          {modePrefix} +{formatResources(lastProduced)}/{activationMode === 'manual' ? 'click' : 'tick'}
+          {lastSent > 0 ? ` (out ${formatResources(lastSent)})` : ''}
+        </div>
+      ) : !isExhausted && activationMode === 'manual' ? (
+        <div className="node-rate">
+          {mode === 'script'
+            ? '📜 script/click'
+            : mode === 'formula' && data.formula
+              ? '📐 f(x)/click'
+              : data.productionRate > 0
+                ? `+${formatResources(data.productionRate)}/click`
+                : '🖱️ click to produce'}
         </div>
       ) : !isExhausted && mode === 'script' ? (
         <div className="node-rate">📜 script</div>
@@ -57,6 +73,21 @@ export const SourceNode = memo(({ data, selected }: CustomNodeProps) => {
       ) : !isExhausted && data.productionRate > 0 ? (
         <div className="node-rate">+{formatResources(data.productionRate)}/tick</div>
       ) : null}
+      {activationMode === 'manual' && !isExhausted && (
+        <button
+          className="node-action"
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            triggerSource(id);
+          }}
+          title={isRunning ? 'Produce once' : 'Start simulation to enable'}
+          disabled={!data.isActive || !isRunning}
+        >
+          ⚡ Produce
+        </button>
+      )}
       <Handle type="source" position={Position.Right} />
     </div>
   );

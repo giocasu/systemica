@@ -28,6 +28,7 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
 
   const data = node.data as NodeData;
   const typeInfo = nodeConfig[data.nodeType];
+  const activationMode = data.activationMode ?? 'auto';
   
   // Determine current processing mode (support legacy useFormula)
   const currentMode: ProcessingMode = data.processingMode || (data.useFormula ? 'formula' : 'fixed');
@@ -181,6 +182,32 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
               📜 Script
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Activation Mode for Source */}
+      {data.nodeType === 'source' && (
+        <div className="property-group">
+          <label>Activation Mode</label>
+          <div className="mode-selector">
+            <button
+              className={`mode-btn ${activationMode === 'auto' ? 'active' : ''}`}
+              onClick={() => handleChange('activationMode', 'auto')}
+            >
+              ⏱️ Auto (per tick)
+            </button>
+            <button
+              className={`mode-btn ${activationMode === 'manual' ? 'active' : ''}`}
+              onClick={() => handleChange('activationMode', 'manual')}
+            >
+              🖱️ Manual (click)
+            </button>
+          </div>
+          {activationMode === 'manual' && (
+            <div className="property-group info">
+              <span>Click the Source node to produce once.</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -448,6 +475,11 @@ return floor(input + bonus);`}</pre>
         {(data.probability ?? 100) < 100 && (
           <div className="property-group info">
             <span>🎲 {data.probability}% chance per tick</span>
+          </div>
+        )}
+        {data.nodeType === 'source' && activationMode === 'manual' && (
+          <div className="property-group info">
+            <span>ⓘ Probability is ignored in manual mode.</span>
           </div>
         )}
       </div>

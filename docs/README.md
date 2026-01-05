@@ -115,7 +115,7 @@ Drag nodes from the palette onto the canvas:
 
 ### ⬆️ Source
 
-Automatically produces resources each tick.
+Produces resources automatically each tick or manually on click.
 
 | Property | Description |
 |----------|-------------|
@@ -125,6 +125,7 @@ Automatically produces resources each tick.
 | Max Total Production | Total resources this source can ever produce (-1 = infinite) |
 | Production Rate | Resources produced per tick (supports decimals: 0.1, 0.5, etc.) |
 | Distribution Mode | **Continuous** (split equally) or **Discrete** (round-robin) |
+| Activation Mode | **Auto** (per tick) or **Manual** (click to produce) |
 | Probability | % activation chance per tick (0-100) |
 | Processing Mode | Fixed rate, Formula, or Script |
 

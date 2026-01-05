@@ -84,6 +84,7 @@ interface SimulatorState {
   setSelectedEdge: (edgeId: string | null) => void;
   deleteSelectedNode: () => void;
   deleteSelectedEdge: () => void;
+  triggerSource: (nodeId: string) => void;
   clearCanvas: () => void;
   toggleRunning: () => void;
   tick: () => void;
@@ -225,6 +226,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         inputRatio: defaults.inputRatio ?? 1,
         outputRatio: defaults.outputRatio ?? 1,
         probability: defaults.probability ?? 100,
+        activationMode: defaults.activationMode ?? 'auto',
         gateCondition: defaults.gateCondition ?? 'always',
         gateThreshold: defaults.gateThreshold ?? 0,
         formula: defaults.formula ?? '',
@@ -365,6 +367,76 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     get().pushHistory();
   },
 
+  triggerSource: (nodeId) => {
+    const { currentTick, isRunning } = get();
+    if (!isRunning) return;
+
+    set((state) => {
+      let updated = false;
+
+      const nextNodes = state.nodes.map((node) => {
+        if (node.id !== nodeId) return node;
+        if (node.data.nodeType !== 'source') return node;
+        if (!node.data.isActive) return node;
+        if ((node.data.activationMode ?? 'auto') !== 'manual') return node;
+
+        const maxProd = node.data.maxProduction ?? -1;
+        const totalProduced = node.data.totalProduced ?? 0;
+        if (maxProd !== -1 && totalProduced >= maxProd) return node;
+
+        const mode = node.data.processingMode || (node.data.useFormula ? 'formula' : 'fixed');
+        let production: number;
+
+        if (mode === 'formula' && node.data.formula) {
+          const result = evaluateFormula(node.data.formula, {
+            resources: node.data.resources,
+            tick: currentTick,
+            capacity: node.data.capacity,
+            totalProduced,
+          });
+          production = result ?? node.data.productionRate;
+        } else if (mode === 'script' && node.data.script) {
+          const lastOutput = node.data.scriptState?.lastOutput;
+          production = typeof lastOutput === 'number' ? lastOutput : node.data.productionRate;
+        } else {
+          production = node.data.productionRate;
+        }
+
+        if (!Number.isFinite(production) || production <= 0) return node;
+
+        if (maxProd !== -1) {
+          const remaining = maxProd - totalProduced;
+          production = Math.min(production, remaining);
+        }
+
+        let nextResources = node.data.resources + production;
+        const capacity = node.data.capacity ?? -1;
+        let overflow = 0;
+        if (capacity !== -1 && Number.isFinite(capacity)) {
+          overflow = Math.max(0, nextResources - capacity);
+          nextResources = Math.min(nextResources, capacity);
+        }
+
+        const actualProduced = Math.max(0, production - overflow);
+        if (actualProduced <= 0) return node;
+
+        updated = true;
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            resources: nextResources,
+            totalProduced: totalProduced + actualProduced,
+            lastProduced: actualProduced,
+          },
+        };
+      });
+
+      if (!updated) return state;
+      return { nodes: nextNodes };
+    });
+  },
+
   clearCanvas: () => {
     const { nodes, edges } = get();
     if (nodes.length === 0 && edges.length === 0) return;
@@ -471,6 +543,11 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
     for (const node of nodeMap.values()) {
       if (node.data.nodeType !== 'source' || !node.data.isActive) continue;
+
+      if ((node.data.activationMode ?? 'auto') === 'manual') {
+        sourceProductionThisTick.set(node.id, 0);
+        continue;
+      }
 
       const maxProd = node.data.maxProduction ?? -1;
       const totalProduced = node.data.totalProduced ?? 0;
