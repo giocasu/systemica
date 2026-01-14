@@ -38,6 +38,9 @@ const createNodeData = (
   lastDistributionIndex: 0,
   maxProduction: -1,
   totalProduced: 0,
+  // Token system
+  tokenType: 'black',
+  typedResources: {},
   ...overrides,
 });
 

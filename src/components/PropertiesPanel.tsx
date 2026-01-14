@@ -3,6 +3,8 @@ import { useSimulatorStore } from '../store/simulatorStore';
 import { NodeData, nodeConfig, ProcessingMode, DistributionMode } from '../types';
 import { validateFormula } from '../utils/formulaEvaluator';
 import { validateScript } from '../utils/scriptRunner';
+import { TokenSelector } from './TokenSelector';
+import { TokenEditorModal } from './TokenEditorModal';
 
 interface PropertiesPanelProps {
   nodeId: string;
@@ -18,6 +20,7 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
   const [validatingScript, setValidatingScript] = useState(false);
   const [capacityDraft, setCapacityDraft] = useState<string | null>(null);
   const [maxProductionDraft, setMaxProductionDraft] = useState<string | null>(null);
+  const [showTokenEditor, setShowTokenEditor] = useState(false);
 
   useEffect(() => {
     setCapacityDraft(null);
@@ -63,6 +66,18 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
           onChange={(e) => handleChange('label', e.target.value)}
         />
       </div>
+
+      {/* Token Type for Source */}
+      {data.nodeType === 'source' && (
+        <div className="property-group">
+          <label>Token Type</label>
+          <TokenSelector
+            value={data.tokenType || 'black'}
+            onChange={(tokenId) => handleChange('tokenType', tokenId)}
+            onCreateNew={() => setShowTokenEditor(true)}
+          />
+        </div>
+      )}
 
       {/* Resources - buffer for all nodes */}
       <div className="property-group">
@@ -483,6 +498,12 @@ return floor(input + bonus);`}</pre>
           </div>
         )}
       </div>
+
+      {/* Token Editor Modal */}
+      <TokenEditorModal
+        isOpen={showTokenEditor}
+        onClose={() => setShowTokenEditor(false)}
+      />
     </div>
   );
 }

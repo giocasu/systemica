@@ -43,9 +43,9 @@ Ultimo aggiornamento: 27 Dicembre 2025
 ## 🚀 Future Features
 
 ### UI Enhancements
-- 🎯 **NodeToolbar**: Quick actions (delete, duplicate, lock) on selected nodes using ReactFlow's NodeToolbar component
+- ✅ **NodeToolbar**: Quick actions (delete, duplicate, lock) on selected nodes using ReactFlow's NodeToolbar component
   - Reference: https://reactflow.dev/examples/nodes/node-toolbar
-- 🔧 **Fully Draggable Panels**: Make all panels (palette, properties, charts) freely draggable and resizable
+- ✅ **Fully Draggable Panels**: Make all panels (palette, properties, charts) freely draggable and resizable
 - 📱 **Responsive Layout**: Better support for smaller screens and mobile devices
 
 ### Architecture

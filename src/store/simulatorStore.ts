@@ -13,6 +13,7 @@ import { NodeData, NodeType, nodeDefaults } from '../types';
 import { getTemplateById } from '../templates';
 import { evaluateFormula } from '../utils/formulaEvaluator';
 import { executeScript } from '../utils/scriptRunner';
+import { migrateNodes } from '../utils/migration';
 
 // Edge data type
 export interface EdgeData {
@@ -243,6 +244,10 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         lastReceived: defaults.lastReceived ?? 0,
         lastConverted: defaults.lastConverted ?? 0,
         lastSent: defaults.lastSent ?? 0,
+        // Token system
+        tokenType: defaults.tokenType ?? 'black',
+        typedResources: defaults.typedResources ?? {},
+        recipe: defaults.recipe,
       },
     };
 
@@ -986,15 +991,18 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
   // Load project from JSON object
   loadProject: (data: ProjectData) => {
+    // Migrate nodes to include token system fields (backward compatibility)
+    const migratedNodes = migrateNodes(data.nodes);
+    
     // Reset counter based on loaded nodes
-    const maxId = data.nodes.reduce((max, node) => {
+    const maxId = migratedNodes.reduce((max, node) => {
       const match = node.id.match(/node_(\d+)/);
       return match ? Math.max(max, parseInt(match[1])) : max;
     }, 0);
     nodeIdCounter = maxId + 1;
 
     clearPendingHistoryCommit();
-    const nextNodes = data.nodes.map((n) => (n.selected ? { ...n, selected: false } : n));
+    const nextNodes = migratedNodes.map((n) => (n.selected ? { ...n, selected: false } : n));
     const nextEdges = data.edges.map((e) => (e.selected ? { ...e, selected: false } : e));
     set({
       nodes: nextNodes,
@@ -1012,15 +1020,18 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
   // Load raw state (for auto-restore and share links)
   loadState: (nodes: Node<NodeData>[], edges: Edge<EdgeData>[]) => {
+    // Migrate nodes to include token system fields (backward compatibility)
+    const migratedNodes = migrateNodes(nodes);
+    
     // Reset counter based on loaded nodes
-    const maxId = nodes.reduce((max, node) => {
+    const maxId = migratedNodes.reduce((max, node) => {
       const match = node.id.match(/node_(\d+)/);
       return match ? Math.max(max, parseInt(match[1])) : max;
     }, 0);
     nodeIdCounter = maxId + 1;
 
     clearPendingHistoryCommit();
-    const nextNodes = nodes.map((n) => (n.selected ? { ...n, selected: false } : n));
+    const nextNodes = migratedNodes.map((n) => (n.selected ? { ...n, selected: false } : n));
     const nextEdges = edges.map((e) => (e.selected ? { ...e, selected: false } : e));
     set({
       nodes: nextNodes,

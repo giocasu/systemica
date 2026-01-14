@@ -12,6 +12,52 @@ export type ActivationMode = 'auto' | 'manual';
 // discrete: atomic resources (items, cards) - round robin
 export type DistributionMode = 'continuous' | 'discrete';
 
+// ============================================================================
+// TOKEN TYPES - Resource types that flow through the system
+// ============================================================================
+
+/**
+ * Predefined token colors (matching Machinations style).
+ */
+export type PredefinedTokenColor = 'black' | 'blue' | 'green' | 'orange' | 'red';
+
+/**
+ * Token definition - a type of resource that can flow through the system.
+ * 
+ * - Predefined: 5 colors (Black, Blue, Green, Orange, Red)
+ * - Custom: User-defined with emoji, name, and color
+ */
+export interface TokenDefinition {
+  id: string;                    // Unique ID (e.g., "black", "gold", "sword_1")
+  name: string;                  // Display name (e.g., "Black", "Gold", "Sword")
+  color: string;                 // Hex color (e.g., "#1a1a2e", "#FFD700")
+  emoji?: string;                // Optional emoji (e.g., "⚫", "🪙", "⚔️")
+  isCustom: boolean;             // false for predefined, true for custom
+  isDefault?: boolean;           // If this is the default token for new Sources
+}
+
+/**
+ * Typed resources: map of tokenId → quantity.
+ * Used by Pool, Drain, and Converter to track multiple resource types.
+ * 
+ * Example: { black: 10, gold: 5, sword: 2 }
+ */
+export type TypedResources = Record<string, number>;
+
+/**
+ * Converter recipe: defines input requirements and output production.
+ * 
+ * Example: 2 Iron + 3 Wood → 1 Sword
+ * {
+ *   inputs: [{ tokenId: 'iron', amount: 2 }, { tokenId: 'wood', amount: 3 }],
+ *   outputs: [{ tokenId: 'sword', amount: 1 }]
+ * }
+ */
+export interface ConverterRecipe {
+  inputs: Array<{ tokenId: string; amount: number }>;
+  outputs: Array<{ tokenId: string; amount: number }>;
+}
+
 // Node data stored in React Flow nodes
 export interface NodeData extends Record<string, unknown> {
   label: string;
@@ -58,6 +104,21 @@ export interface NodeData extends Record<string, unknown> {
   lastConverted?: number;
   // Generic: sent out in the last tick (for UI feedback)
   lastSent?: number;
+  
+  // ============================================================================
+  // TOKEN SYSTEM - Multi-resource type support
+  // ============================================================================
+  
+  // Source: type of token this source produces (e.g., "black", "gold")
+  tokenType: string;
+  
+  // Pool/Drain/Converter: typed resources map (tokenId → quantity)
+  // Example: { black: 10, gold: 5, sword: 2 }
+  typedResources: TypedResources;
+  
+  // Converter: recipe for multi-token conversion
+  // Example: 2 iron + 3 wood → 1 sword
+  recipe?: ConverterRecipe;
 }
 
 // Default values for each node type
@@ -83,6 +144,9 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     totalProduced: 0,
     lastProduced: 0,
     lastSent: 0,
+    // Token system
+    tokenType: 'black',
+    typedResources: {},
   },
   pool: {
     resources: 0,
@@ -104,6 +168,9 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     totalProduced: 0,
     lastReceived: 0,
     lastSent: 0,
+    // Token system
+    tokenType: 'black',
+    typedResources: {},
   },
   drain: {
     resources: 0,
@@ -125,6 +192,9 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     totalProduced: 0,
     lastConsumed: 0,
     lastSent: 0,
+    // Token system
+    tokenType: 'black',
+    typedResources: {},
   },
   converter: {
     resources: 0,
@@ -132,8 +202,8 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     productionRate: 0,
     consumptionRate: 0,
     isActive: true,
-    inputRatio: 2,          // requires 2 input
-    outputRatio: 1,         // produces 1 output
+    inputRatio: 2,          // requires 2 input (legacy, use recipe for multi-token)
+    outputRatio: 1,         // produces 1 output (legacy, use recipe for multi-token)
     probability: 100,
     processingMode: 'fixed',
     formula: '',
@@ -146,6 +216,10 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     totalProduced: 0,
     lastConverted: 0,
     lastSent: 0,
+    // Token system
+    tokenType: 'black',
+    typedResources: {},
+    recipe: undefined,
   },
   gate: {
     resources: 0,
@@ -168,6 +242,9 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     maxProduction: -1,
     totalProduced: 0,
     lastSent: 0,
+    // Token system
+    tokenType: 'black',
+    typedResources: {},
   },
 };
 

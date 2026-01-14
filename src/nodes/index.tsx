@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { NodeData, ProcessingMode } from '../types';
 import { useSimulatorStore } from '../store/simulatorStore';
+import { useTokenStore } from '../store/tokenStore';
 
 // Props for our custom nodes
 interface CustomNodeProps {
@@ -28,6 +29,7 @@ const formatResources = (val: number): string => {
 export const SourceNode = memo(({ id, data, selected }: CustomNodeProps) => {
   const triggerSource = useSimulatorStore((state) => state.triggerSource);
   const isRunning = useSimulatorStore((state) => state.isRunning);
+  const getToken = useTokenStore((state) => state.getToken);
   const mode = getMode(data);
   const activationMode = data.activationMode ?? 'auto';
   const maxProd = data.maxProduction ?? -1;
@@ -43,8 +45,20 @@ export const SourceNode = memo(({ id, data, selected }: CustomNodeProps) => {
         ? '📐'
         : '📊';
   
+  // Get token info for badge
+  const tokenType = data.tokenType || 'black';
+  const token = getToken(tokenType);
+  
   return (
     <div className={`custom-node node-source ${activeClass} ${selected ? 'selected' : ''} ${isExhausted ? 'exhausted' : ''}`}>
+      {/* Token badge */}
+      <div 
+        className="token-badge" 
+        style={{ backgroundColor: token?.color || '#1a1a2e' }}
+        title={token?.name || 'Black'}
+      >
+        {token?.emoji || '⚫'}
+      </div>
       <div className="node-label">{data.label}</div>
       <div className="node-value">{formatResources(data.resources)}</div>
       {isExhausted && <div className="node-rate exhausted-label">⛔ exhausted</div>}
