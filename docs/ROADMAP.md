@@ -63,6 +63,14 @@ Ultimo aggiornamento: 27 Dicembre 2025
 
 ## 📝 Note di Sviluppo
 
+### v0.11.1 (27/12/2025)
+- ✅ **Tick snapshot**: flussi calcolati su stato a inizio tick (niente multi-hop nello stesso tick)
+- ✅ **Sorgenti manuali**: activation mode Auto/Manual con click per produrre (solo in Play)
+- ✅ **Selezione multipla**: shift+click/box select, delete/copy multi-nodo
+- ✅ **Clear canvas**: pulizia nodi/edge separata da "new project" (undoabile)
+- ✅ **Touch palette**: long-press + drag per aggiungere nodi su iOS
+- ✅ **Undo proprietà**: modifiche alle proprietà salvate in history (debounced)
+
 ### v0.11.0 (27/12/2025)
 - ✅ **Distribution Mode** per Source: Continuous (divisibile) vs Discrete (round-robin atomico)
 - ✅ **Limite produzione Source**: `maxProduction` per limitare produzione totale

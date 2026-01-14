@@ -100,6 +100,7 @@ npm run dev
 ### Palette Nodi
 
 Trascina i nodi dalla palette sul canvas:
+Su dispositivi touch: long-press su un nodo, poi trascina sul canvas.
 
 | Icona | Tipo | Funzione |
 |-------|------|----------|
@@ -128,6 +129,8 @@ Produce risorse automaticamente ad ogni tick oppure manualmente con click.
 | Activation Mode | **Auto** (per tick) o **Manual** (click per produrre) |
 | Probability | % di attivazione per tick (0-100) |
 | Processing Mode | Fixed rate, Formula, o Script |
+
+Nota: le sorgenti manuali producono solo quando la simulazione è in esecuzione (Play).
 
 **Modalità di Distribuzione:**
 - **💧 Continuous**: Risorse divisibili (acqua, oro, energia). 1/tick → 2 output = 0.5 ciascuno

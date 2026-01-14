@@ -100,6 +100,7 @@ npm run dev
 ### Node Palette
 
 Drag nodes from the palette onto the canvas:
+On touch devices: long-press a node, then drag onto the canvas.
 
 | Icon | Type | Function |
 |------|------|----------|
@@ -128,6 +129,8 @@ Produces resources automatically each tick or manually on click.
 | Activation Mode | **Auto** (per tick) or **Manual** (click to produce) |
 | Probability | % activation chance per tick (0-100) |
 | Processing Mode | Fixed rate, Formula, or Script |
+
+Note: Manual sources only produce while the simulation is running (Play).
 
 **Distribution Modes:**
 - **💧 Continuous**: Divisible resources (water, gold, energy). 1/tick → 2 outputs = 0.5 each
