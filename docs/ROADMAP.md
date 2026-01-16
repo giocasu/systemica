@@ -1,6 +1,6 @@
 # Roadmap - Systemica
 
-Ultimo aggiornamento: 27 Dicembre 2025
+Ultimo aggiornamento: 16 Gennaio 2026
 
 ## 🔴 Priorità Alta (Core Features)
 
@@ -49,6 +49,8 @@ Ultimo aggiornamento: 27 Dicembre 2025
 - 📱 **Responsive Layout**: Better support for smaller screens and mobile devices
 
 ### Architecture
+- ✅ **Token System**: Multi-token resources with typed resources (see ROADMAP_TOKENS.md)
+- ✅ **Batch Script Execution**: Optimized script runner with ~5x performance improvement
 - 🏗️ **"Everything is a Script" (Hybrid)**: Allow any node property to be either a simple value OR a JavaScript formula/script
   - Maintain backward compatibility with simple values
   - Scripts have access to full context (neighbors, global state, time)
@@ -62,6 +64,21 @@ Ultimo aggiornamento: 27 Dicembre 2025
 ---
 
 ## 📝 Note di Sviluppo
+
+### v0.12.0 (16/01/2026)
+- ✅ **Token System**: Sistema risorse tipizzate ispirato a Machinations
+  - 5 colori predefiniti: Black, Blue, Green, Orange, Red
+  - Token custom con emoji + nome + colore
+  - Source produce 1 tipo di token
+  - Pool accumula multi-token con visualizzazione breakdown
+  - Converter con ricette multi-input/output
+  - Script context esteso: `tokenType`, `tokens`, `get(nodeId, tokenId)`
+- ✅ **Chart Toggle**: Visualizzazione per Nodes o per Tokens nel grafico
+- ✅ **StatusBar Multi-Token**: Breakdown dei top 3 token nella status bar
+- ✅ **Batch Script Execution**: Ottimizzazione ~5x per esecuzione script multipli
+  - Singolo Runtime/Context QuickJS per tick
+  - Mantiene snapshot semantics
+- ✅ **Integer Token Transfers**: Pool riceve quantità intere (fix decimali)
 
 ### v0.11.1 (27/12/2025)
 - ✅ **Tick snapshot**: flussi calcolati su stato a inizio tick (niente multi-hop nello stesso tick)

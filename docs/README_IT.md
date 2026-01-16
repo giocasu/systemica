@@ -10,16 +10,17 @@ Un simulatore visuale di economie di gioco ispirato a **Machinations**, progetta
 2. [Avvio Rapido](#-avvio-rapido)
 3. [Interfaccia](#-interfaccia)
 4. [Tipi di Nodo](#-tipi-di-nodo)
-5. [Connessioni](#-connessioni)
-6. [Simulazione](#-simulazione)
-7. [Proprietà Avanzate](#-proprietà-avanzate)
-8. [Template Predefiniti](#-template-predefiniti)
-9. [Formule Custom](#-formule-custom)
-10. [Script Personalizzati](#-script-personalizzati-avanzato)
-11. [Salvataggio e Export](#-salvataggio-e-export)
-12. [Auto-save e Condivisione](#-auto-save-e-condivisione)
-13. [Scorciatoie da Tastiera](#-scorciatoie-da-tastiera)
-14. [Casi d'Uso](#-casi-duso)
+5. [Sistema Token](#-sistema-token)
+6. [Connessioni](#-connessioni)
+7. [Simulazione](#-simulazione)
+8. [Proprietà Avanzate](#-proprietà-avanzate)
+9. [Template Predefiniti](#-template-predefiniti)
+10. [Formule Custom](#-formule-custom)
+11. [Script Personalizzati](#-script-personalizzati-avanzato)
+12. [Salvataggio e Export](#-salvataggio-e-export)
+13. [Auto-save e Condivisione](#-auto-save-e-condivisione)
+14. [Scorciatoie da Tastiera](#-scorciatoie-da-tastiera)
+15. [Casi d'Uso](#-casi-duso)
 
 ---
 
@@ -228,6 +229,79 @@ Trasferisce risorse solo se una condizione è soddisfatta.
 - Overflow protection
 - Conditional triggers
 - Gating content
+
+---
+
+## 🎮 Sistema Token
+
+Systemica supporta **risorse tipizzate** (token) ispirate a Machinations. Invece di risorse generiche, puoi creare tipi di token distinti con colori e icone.
+
+### Token Predefiniti
+
+| Token | Colore | Emoji |
+|-------|--------|-------|
+| Black (default) | #1a1a2e | ⚫ |
+| Blue | #4361ee | 🔵 |
+| Green | #2ec4b6 | 🟢 |
+| Orange | #ff9f1c | 🟠 |
+| Red | #e94560 | 🔴 |
+
+### Token Custom
+
+Crea i tuoi token con:
+- **Emoji**: Identificatore visivo (es. 🪙, ⚔️, 💎)
+- **Nome**: Nome da visualizzare (es. "Gold", "Sword", "Gem")
+- **Colore**: Colore hex per grafici e visualizzazione
+
+### Come Funzionano i Token
+
+1. **Source**: Ogni Source produce esattamente **un tipo di token**
+   - Seleziona il tipo nel pannello proprietà
+   - Un badge mostra il token corrente sul nodo
+
+2. **Pool**: Accumula **più tipi di token**
+   - Totale mostrato in evidenza
+   - Breakdown visibile sotto il totale
+   - Ogni token tracciato separatamente
+
+3. **Converter**: Trasforma token usando **ricette**
+   - Definisci quali token sono consumati (input)
+   - Definisci quali token sono prodotti (output)
+   - Conversione quando tutti gli input sono disponibili
+
+4. **Drain**: Consuma tutti i tipi di token
+   - Traccia totale consumato per tipo
+
+### Visualizzazione Token
+
+- **Grafico Risorse**: Toggle tra vista "Nodes" e "Tokens"
+  - Vista Nodes: Una linea per nodo (tradizionale)
+  - Vista Tokens: Una linea per tipo token (aggregato)
+- **Status Bar**: Mostra top 3 tipi di token con totali
+- **Badge Nodi**: I Source mostrano indicatore token
+
+### Accesso negli Script
+
+Accedi ai dati token negli script:
+
+```javascript
+// Tipo token del nodo corrente
+tokenType           // es. "gold"
+
+// Risorse tipizzate del nodo corrente
+tokens              // es. { gold: 10, black: 5 }
+tokens.gold         // 10
+
+// Ottieni token da un altro nodo
+get("pool1", "gold")  // Gold da pool1
+get("pool1", "blue")  // Blue da pool1
+
+// Ottieni dati completi di un altro nodo
+const node = getNode("pool1");
+node.resources      // Risorse totali
+node.tokens         // { gold: 10, blue: 5 }
+node.tokenType      // Tipo token (per source)
+```
 
 ---
 

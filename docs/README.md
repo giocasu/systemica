@@ -10,16 +10,17 @@ A visual game economy simulator inspired by **Machinations**, designed to model 
 2. [Quick Start](#-quick-start)
 3. [Interface](#-interface)
 4. [Node Types](#-node-types)
-5. [Connections](#-connections)
-6. [Simulation](#-simulation)
-7. [Advanced Properties](#-advanced-properties)
-8. [Pre-built Templates](#-pre-built-templates)
-9. [Custom Formulas](#-custom-formulas)
-10. [Custom Scripts](#-custom-scripts-advanced)
-11. [Save and Export](#-save-and-export)
-12. [Auto-save and Sharing](#-auto-save-and-sharing)
-13. [Keyboard Shortcuts](#-keyboard-shortcuts)
-14. [Use Cases](#-use-cases)
+5. [Token System](#-token-system)
+6. [Connections](#-connections)
+7. [Simulation](#-simulation)
+8. [Advanced Properties](#-advanced-properties)
+9. [Pre-built Templates](#-pre-built-templates)
+10. [Custom Formulas](#-custom-formulas)
+11. [Custom Scripts](#-custom-scripts-advanced)
+12. [Save and Export](#-save-and-export)
+13. [Auto-save and Sharing](#-auto-save-and-sharing)
+14. [Keyboard Shortcuts](#-keyboard-shortcuts)
+15. [Use Cases](#-use-cases)
 
 ---
 
@@ -121,6 +122,7 @@ Produces resources automatically each tick or manually on click.
 | Property | Description |
 |----------|-------------|
 | Label | Node name |
+| **Token Type** | Type of token produced (Black, Blue, Green, Orange, Red, or custom) |
 | Buffer | Current resources in buffer (used in formulas) |
 | Buffer Capacity | Maximum buffer size kept in the buffer (-1 = unlimited) |
 | Max Total Production | Total resources this source can ever produce (-1 = infinite) |
@@ -151,14 +153,20 @@ Note: Manual sources only produce while the simulation is running (Play).
 
 ### 🔵 Pool
 
-Accumulates resources with optional capacity.
+Accumulates resources with optional capacity. Supports **multi-token storage**.
 
 | Property | Description |
 |----------|-------------|
 | Label | Node name |
-| Resources | Current resources (supports decimals) |
+| Resources | Total resources (sum of all token types) |
+| Token Breakdown | Visual breakdown of each token type stored |
 | Capacity | Maximum (-1 = unlimited) |
 | Probability | % outgoing transfer chance |
+
+**Multi-Token Display:**
+- Shows total resources prominently
+- Displays breakdown of token types with colored indicators
+- Hover to see detailed token amounts
 
 **Use cases:**
 - Player inventory
@@ -188,17 +196,26 @@ Consumes and removes resources from the system.
 
 ### 🔄 Converter
 
-Transforms input resources into output resources.
+Transforms input resources into output resources. Supports **multi-token recipes**.
 
 | Property | Description |
 |----------|-------------|
-| Input Ratio | Required resources |
-| Output Ratio | Produced resources |
+| Input Ratio | Required resources (simple mode) |
+| Output Ratio | Produced resources (simple mode) |
+| Recipe | Multi-token input/output definition (advanced mode) |
 | Resources | Accumulation buffer |
 
-**Logic:** When it accumulates `inputRatio` resources, converts them to `outputRatio` and distributes.
+**Simple Mode:** When it accumulates `inputRatio` resources, converts them to `outputRatio` and distributes.
 
-**Example:** Input 3, Output 1 → Every 3 incoming resources produce 1 outgoing resource.
+**Recipe Mode:** Define complex conversions with multiple token types:
+- **Inputs**: List of token types and amounts required
+- **Outputs**: List of token types and amounts produced
+
+**Example (Simple):** Input 3, Output 1 → Every 3 incoming resources produce 1 outgoing resource.
+
+**Example (Recipe):** 
+- Input: 2 🟢 Green + 1 🔵 Blue
+- Output: 1 🟠 Orange
 
 **Use cases:**
 - Crafting (3 wood → 1 plank)
@@ -228,6 +245,79 @@ Transfers resources only when a condition is met.
 - Overflow protection
 - Conditional triggers
 - Content gating
+
+---
+
+## 🎮 Token System
+
+Systemica supports **typed resources** (tokens) inspired by Machinations. Instead of generic resources, you can create distinct token types with colors and icons.
+
+### Predefined Tokens
+
+| Token | Color | Emoji |
+|-------|-------|-------|
+| Black (default) | #1a1a2e | ⚫ |
+| Blue | #4361ee | 🔵 |
+| Green | #2ec4b6 | 🟢 |
+| Orange | #ff9f1c | 🟠 |
+| Red | #e94560 | 🔴 |
+
+### Custom Tokens
+
+Create your own tokens with:
+- **Emoji**: Visual identifier (e.g., 🪙, ⚔️, 💎)
+- **Name**: Display name (e.g., "Gold", "Sword", "Gem")
+- **Color**: Hex color for charts and visualization
+
+### How Tokens Work
+
+1. **Source**: Each Source produces exactly **one token type**
+   - Select token type in properties panel
+   - Badge shows current token on the node
+
+2. **Pool**: Accumulates **multiple token types**
+   - Total shown prominently
+   - Breakdown visible below total
+   - Each token tracked separately
+
+3. **Converter**: Transforms tokens using **recipes**
+   - Define which tokens are consumed (inputs)
+   - Define which tokens are produced (outputs)
+   - Conversion happens when all inputs are available
+
+4. **Drain**: Consumes all token types
+   - Tracks total consumed per token type
+
+### Token Visualization
+
+- **Resource Chart**: Toggle between "Nodes" and "Tokens" view
+  - Nodes view: One line per node (traditional)
+  - Tokens view: One line per token type (aggregated)
+- **Status Bar**: Shows top 3 token types with totals
+- **Node Badges**: Source nodes show token indicator
+
+### Script Access
+
+Access token data in scripts:
+
+```javascript
+// Current node's token type
+tokenType           // e.g., "gold"
+
+// Current node's typed resources
+tokens              // e.g., { gold: 10, black: 5 }
+tokens.gold         // 10
+
+// Get another node's token amount
+get("pool1", "gold")  // Get gold from pool1
+get("pool1", "blue")  // Get blue from pool1
+
+// Get another node's full data
+const node = getNode("pool1");
+node.resources      // Total resources
+node.tokens         // { gold: 10, blue: 5 }
+node.tokenType      // Token type (for sources)
+```
 
 ---
 
@@ -423,12 +513,15 @@ Notes:
 | `totalProduced` / `produced` | (Source only) Total produced so far |
 | `maxProduction` / `maxTotalProduction` | (Source only) Max total production (Infinity if unlimited) |
 | `maxProductionRaw` / `maxTotalProductionRaw` | (Source only) Raw max production (-1 if unlimited) |
+| **`tokenType`** | Token type ID of the node (e.g., "gold", "blue") |
+| **`tokens`** | Object with typed resources: `{ gold: 10, blue: 5 }` |
 
 ### Available Functions
 
 | Function | Description |
 |----------|-------------|
-| `getNode(id)` | Get another node's data: `{ resources, capacity }` |
+| `getNode(id)` | Get another node's data: `{ resources, capacity, tokens, tokenType }` |
+| **`get(nodeId, tokenId)`** | Get specific token amount from a node |
 | `state` | Persistent object to store values between ticks |
 | `min()`, `max()`, `floor()`, `ceil()`, `round()` | Math functions |
 | `random()`, `sqrt()`, `pow()`, `sin()`, `cos()`, `tan()`, `log()`, `exp()`, `abs()` | Math functions |
@@ -474,6 +567,26 @@ if (warehouse && warehouse.resources < 20) {
   return 5; // Produce more when warehouse is low
 }
 return 1;
+```
+
+```javascript
+// Token-aware production: check gold in another pool
+const goldAmount = get('gold-pool', 'gold');
+if (goldAmount < 10) {
+  return 3; // Produce more when gold is low
+}
+return 1;
+```
+
+```javascript
+// Multi-token logic: balance production based on ratios
+const myGold = tokens.gold || 0;
+const myBlue = tokens.blue || 0;
+// Produce more if gold/blue ratio is unbalanced
+if (myGold > myBlue * 2) {
+  return 1; // Slow down
+}
+return 5; // Speed up
 ```
 
 ### Scripts vs Formulas

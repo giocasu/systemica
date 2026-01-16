@@ -12,7 +12,7 @@ import {
 import { NodeData, NodeType, nodeDefaults, TypedResources } from '../types';
 import { getTemplateById } from '../templates';
 import { evaluateFormula } from '../utils/formulaEvaluator';
-import { executeScript } from '../utils/scriptRunner';
+import { executeBatchScripts, BatchScriptEntry } from '../utils/scriptRunner';
 import { 
   getTotalResources, 
   addTokenResources, 
@@ -1143,7 +1143,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     
     if (scriptNodes.length === 0) return;
     
-    // Create a getter for other nodes
+    // Create a getter for other nodes (snapshot semantics)
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
     const getNode = (id: string) => {
       const node = nodeMap.get(id);
@@ -1163,31 +1163,27 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       return getTokenResources(node.data.typedResources, tokenId);
     };
     
-    // Execute all scripts in parallel
-    const results = await Promise.all(
-      scriptNodes.map(async (node) => {
-        try {
-          const result = await executeScript(node.data.script, {
-            input: node.data.resources,
-            resources: node.data.resources,
-            capacity: node.data.capacity,
-            totalProduced: node.data.totalProduced,
-            maxProduction: node.data.maxProduction,
-            tick: currentTick,
-            tokenType: node.data.tokenType,
-            tokens: node.data.typedResources,
-            getNode,
-            get: getTokenFromNode,
-            state: node.data.scriptState || {},
-          });
-          
-          return { nodeId: node.id, result };
-        } catch (error) {
-          console.warn(`Script error in node ${node.id}:`, error);
-          return { nodeId: node.id, result: { success: false, value: 0, error: 'Execution failed' } };
-        }
-      })
-    );
+    // Build batch entries for all scripts
+    const entries: BatchScriptEntry[] = scriptNodes.map(node => ({
+      nodeId: node.id,
+      script: node.data.script,
+      context: {
+        input: node.data.resources,
+        resources: node.data.resources,
+        capacity: node.data.capacity,
+        totalProduced: node.data.totalProduced,
+        maxProduction: node.data.maxProduction,
+        tick: currentTick,
+        tokenType: node.data.tokenType,
+        tokens: node.data.typedResources,
+        getNode,
+        get: getTokenFromNode,
+        state: node.data.scriptState || {},
+      }
+    }));
+    
+    // Execute all scripts in batch (single runtime/context)
+    const results = await executeBatchScripts(entries);
     
     // Update nodes with script results
     set({
