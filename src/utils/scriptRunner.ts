@@ -13,6 +13,7 @@
  */
 
 import { newQuickJSWASMModule, QuickJSWASMModule } from "quickjs-emscripten";
+import { TypedResources } from '../types';
 
 // Singleton for the QuickJS module (loads WASM once)
 let quickJSModule: QuickJSWASMModule | null = null;
@@ -40,16 +41,23 @@ async function getQuickJS(): Promise<QuickJSWASMModule> {
 export interface ScriptContext {
   // Current node data
   input: number;          // Resources available (for converters: accumulated input)
-  resources: number;      // Current resources in the node
+  resources: number;      // Current resources in the node (total of all tokens)
   capacity: number;       // Node capacity (-1 = unlimited)
   totalProduced?: number; // (Source only) Total produced so far
   maxProduction?: number; // (Source only) Max total production (-1 = unlimited)
+  
+  // Token system
+  tokenType?: string;     // Token type of this node (Source only)
+  tokens: TypedResources; // Typed resources map (e.g., { black: 10, gold: 5 })
   
   // Simulation state
   tick: number;           // Current simulation tick
   
   // Access to other nodes (readonly)
-  getNode: (id: string) => { resources: number; capacity: number } | null;
+  getNode: (id: string) => { resources: number; capacity: number; tokens: TypedResources; tokenType?: string } | null;
+  
+  // Shorthand to get a specific token from a node
+  get: (nodeId: string, tokenId: string) => number;
   
   // Persistent state for this node (survives between ticks)
   state: Record<string, unknown>;
@@ -103,6 +111,19 @@ export async function executeScript(
       vm.setProp(vm.global, "capacityRaw", vm.newNumber(context.capacity));
       vm.setProp(vm.global, "tick", vm.newNumber(context.tick));
 
+      // Token type (for Source nodes)
+      if (context.tokenType) {
+        vm.setProp(vm.global, "tokenType", vm.newString(context.tokenType));
+      }
+      
+      // Typed resources object
+      const tokensObj = vm.newObject();
+      for (const [tokenId, amount] of Object.entries(context.tokens)) {
+        vm.setProp(tokensObj, tokenId, vm.newNumber(amount));
+      }
+      vm.setProp(vm.global, "tokens", tokensObj);
+      tokensObj.dispose();
+
       // Source-related aliases (safe to expose for all nodes)
       vm.setProp(vm.global, "buffer", vm.newNumber(context.resources));
       vm.setProp(vm.global, "bufferCapacity", vm.newNumber(context.capacity === -1 ? Infinity : context.capacity));
@@ -135,10 +156,35 @@ export async function executeScript(
         const nodeObj = vm.newObject();
         vm.setProp(nodeObj, "resources", vm.newNumber(node.resources));
         vm.setProp(nodeObj, "capacity", vm.newNumber(node.capacity === -1 ? Infinity : node.capacity));
+        
+        // Add tokens object
+        const nodeTokensObj = vm.newObject();
+        for (const [tokenId, amount] of Object.entries(node.tokens)) {
+          vm.setProp(nodeTokensObj, tokenId, vm.newNumber(amount));
+        }
+        vm.setProp(nodeObj, "tokens", nodeTokensObj);
+        nodeTokensObj.dispose();
+        
+        // Add tokenType if present
+        if (node.tokenType) {
+          vm.setProp(nodeObj, "tokenType", vm.newString(node.tokenType));
+        }
+        
         return nodeObj;
       });
       vm.setProp(vm.global, "getNode", getNodeFn);
       getNodeFn.dispose();
+      
+      // Expose get function (shorthand for getting specific token)
+      const getFn = vm.newFunction("get", (nodeIdHandle, tokenIdHandle) => {
+        const nodeId = vm.getString(nodeIdHandle);
+        const tokenId = vm.getString(tokenIdHandle);
+        const node = context.getNode(nodeId);
+        if (!node) return vm.newNumber(0);
+        return vm.newNumber(node.tokens[tokenId] ?? 0);
+      });
+      vm.setProp(vm.global, "get", getFn);
+      getFn.dispose();
       
       // Expose Math functions
       const mathFunctions = ['min', 'max', 'floor', 'ceil', 'round', 'abs', 'sqrt', 'pow', 'sin', 'cos', 'tan', 'log', 'exp'];
@@ -252,7 +298,10 @@ export async function validateScript(script: string): Promise<string | null> {
     totalProduced: 5,
     maxProduction: 100,
     tick: 1,
-    getNode: () => ({ resources: 50, capacity: 100 }),
+    tokenType: 'black',
+    tokens: { black: 10 },
+    getNode: () => ({ resources: 50, capacity: 100, tokens: { black: 50 } }),
+    get: () => 0,
     state: {},
   });
   

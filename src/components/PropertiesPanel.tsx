@@ -5,6 +5,7 @@ import { validateFormula } from '../utils/formulaEvaluator';
 import { validateScript } from '../utils/scriptRunner';
 import { TokenSelector } from './TokenSelector';
 import { TokenEditorModal } from './TokenEditorModal';
+import { RecipeEditor } from './RecipeEditor';
 
 interface PropertiesPanelProps {
   nodeId: string;
@@ -272,31 +273,16 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
             </div>
           )}
           {data.nodeType === 'converter' && (
-            <>
-              <div className="property-group">
-                <label>Input Ratio (resources consumed)</label>
-                <input
-                  type="number"
-                  value={data.inputRatio}
-                  min={0.1}
-                  step={0.1}
-                  onChange={(e) => handleChange('inputRatio', parseFloat(e.target.value) || 1)}
-                />
-              </div>
-              <div className="property-group">
-                <label>Output Ratio (resources produced)</label>
-                <input
-                  type="number"
-                  value={data.outputRatio}
-                  min={0.1}
-                  step={0.1}
-                  onChange={(e) => handleChange('outputRatio', parseFloat(e.target.value) || 1)}
-                />
-              </div>
-              <div className="property-group info">
-                <span>⚙️ Converts {data.inputRatio} → {data.outputRatio}</span>
-              </div>
-            </>
+            <div className="property-group">
+              <label>Conversion Recipe</label>
+              <RecipeEditor
+                recipe={data.recipe}
+                onChange={(recipe) => handleChange('recipe', recipe)}
+                inputRatio={data.inputRatio}
+                outputRatio={data.outputRatio}
+                onLegacyChange={(field, value) => handleChange(field, value)}
+              />
+            </div>
           )}
         </>
       )}

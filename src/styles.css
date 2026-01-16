@@ -722,6 +722,21 @@ body {
   color: #888;
 }
 
+.status-bar .token-breakdown {
+  display: flex;
+  gap: 8px;
+}
+
+.status-bar .token-stat {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
 /* Custom Node Styles */
 .custom-node {
   padding: 10px 15px;
@@ -853,6 +868,42 @@ body {
 .custom-node .node-value {
   font-size: 1.2rem;
   font-weight: bold;
+}
+
+/* Multi-token resources display */
+.token-resources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.token-resource-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+}
+
+.token-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.token-amount {
+  font-weight: 600;
+}
+
+.token-more {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  padding: 2px 4px;
 }
 
 .custom-node .node-rate {
@@ -991,9 +1042,43 @@ body {
   backdrop-filter: blur(4px);
 }
 
+.resource-chart .chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
 .resource-chart h4 {
-  margin: 0 0 8px 0;
+  margin: 0;
   font-size: 0.9rem;
+  color: #fff;
+}
+
+.resource-chart .chart-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.resource-chart .chart-toggle button {
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.resource-chart .chart-toggle button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.resource-chart .chart-toggle button.active {
+  background: #4361ee;
+  border-color: #4361ee;
   color: #fff;
 }
 
@@ -1675,3 +1760,164 @@ body {
   background: #0f3460;
 }
 
+/* ============================================
+   RECIPE EDITOR
+   ============================================ */
+
+.recipe-editor {
+  margin-top: 8px;
+}
+
+.recipe-toggle {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.recipe-toggle .mode-btn {
+  flex: 1;
+  font-size: 0.75rem;
+  padding: 6px 8px;
+}
+
+.simple-ratio {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ratio-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ratio-row label {
+  flex: 1;
+  font-size: 0.85rem;
+}
+
+.ratio-row input {
+  width: 60px;
+  padding: 6px 8px;
+  background: #1a1a2e;
+  border: 1px solid #0f3460;
+  border-radius: 4px;
+  color: #fff;
+  text-align: center;
+}
+
+.ratio-arrow {
+  text-align: center;
+  opacity: 0.6;
+}
+
+.ratio-example {
+  font-size: 0.75rem;
+  color: #888;
+  text-align: center;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.multi-token-recipe {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recipe-section {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.recipe-section-header {
+  font-size: 0.7rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.recipe-item {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.recipe-item select {
+  flex: 1;
+  padding: 6px 8px;
+  background: #1a1a2e;
+  border: 1px solid #0f3460;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.85rem;
+}
+
+.recipe-item input {
+  width: 50px;
+  padding: 6px 8px;
+  background: #1a1a2e;
+  border: 1px solid #0f3460;
+  border-radius: 4px;
+  color: #fff;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.recipe-remove {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid #e94560;
+  border-radius: 4px;
+  color: #e94560;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.15s;
+}
+
+.recipe-remove:hover {
+  background: #e94560;
+  color: #fff;
+}
+
+.recipe-add {
+  width: 100%;
+  padding: 6px;
+  background: transparent;
+  border: 1px dashed #0f3460;
+  border-radius: 4px;
+  color: #888;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.15s;
+}
+
+.recipe-add:hover {
+  border-color: #e94560;
+  color: #e94560;
+}
+
+.recipe-arrow {
+  text-align: center;
+  font-size: 1.2rem;
+  opacity: 0.6;
+}
+
+.recipe-summary {
+  text-align: center;
+  padding: 8px;
+  background: rgba(233, 69, 96, 0.1);
+  border: 1px solid rgba(233, 69, 96, 0.3);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #e94560;
+}

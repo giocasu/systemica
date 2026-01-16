@@ -107,21 +107,57 @@ export const SourceNode = memo(({ id, data, selected }: CustomNodeProps) => {
   );
 });
 
-// Pool Node - stores resources
+// Pool Node - stores resources (multi-token support)
 export const PoolNode = memo(({ data, selected }: CustomNodeProps) => {
+  const getToken = useTokenStore((state) => state.getToken);
   const lastReceived = typeof data.lastReceived === 'number' ? data.lastReceived : 0;
   const lastSent = typeof data.lastSent === 'number' ? data.lastSent : 0;
   const delta = lastReceived - lastSent;
   const activeClass = lastReceived > 0 ? 'pool-active' : '';
+  
+  // Get typed resources (or fall back to legacy single resource)
+  const typedResources = data.typedResources || {};
+  const hasTypedResources = Object.keys(typedResources).length > 0;
+  const tokenEntries = Object.entries(typedResources).filter(([_, amount]) => amount > 0);
+  
+  // Calculate total resources
+  const totalResources = hasTypedResources 
+    ? Object.values(typedResources).reduce((sum, v) => sum + v, 0)
+    : data.resources;
+  
   return (
     <div className={`custom-node node-pool ${activeClass} ${selected ? 'selected' : ''}`}>
       <Handle type="target" position={Position.Left} />
       <div className="node-label">{data.label}</div>
-      <div className="node-value">{formatResources(data.resources)}</div>
+      
+      {/* Show total resources prominently */}
+      <div className="node-value">{formatResources(totalResources)}</div>
+      
+      {/* Show typed resources breakdown if multiple token types */}
+      {hasTypedResources && tokenEntries.length > 1 && (
+        <div className="token-resources">
+          {tokenEntries.slice(0, 4).map(([tokenId, amount]) => {
+            const token = getToken(tokenId);
+            return (
+              <div key={tokenId} className="token-resource-item" title={token?.name || tokenId}>
+                <span 
+                  className="token-dot" 
+                  style={{ backgroundColor: token?.color || '#666' }}
+                />
+                <span className="token-amount">{formatResources(amount)}</span>
+              </div>
+            );
+          })}
+          {tokenEntries.length > 4 && (
+            <div className="token-more">+{tokenEntries.length - 4}</div>
+          )}
+        </div>
+      )}
+      
       {data.capacity > 0 && <div className="node-rate">max: {formatResources(data.capacity)}</div>}
       {(lastReceived > 0 || lastSent > 0) && (
         <div className="node-rate">
-          Δ {delta >= 0 ? '+' : ''}{formatResources(delta)}/tick (in {formatResources(lastReceived)} / out {formatResources(lastSent)})
+          Δ {delta >= 0 ? '+' : ''}{formatResources(delta)}/tick
         </div>
       )}
       <Handle type="source" position={Position.Right} />
@@ -146,23 +182,46 @@ export const DrainNode = memo(({ data, selected }: CustomNodeProps) => {
   );
 });
 
-// Converter Node - transforms resources
+// Converter Node - transforms resources (multi-token recipe support)
 export const ConverterNode = memo(({ data, selected }: CustomNodeProps) => {
+  const getToken = useTokenStore((state) => state.getToken);
   const mode = getMode(data);
   const lastConverted = typeof data.lastConverted === 'number' ? data.lastConverted : 0;
   const activeClass = lastConverted > 0 ? 'converter-active' : '';
+  const recipe = data.recipe;
+  
+  // Build recipe display
+  const renderRecipe = () => {
+    if (recipe && recipe.inputs.length > 0) {
+      // Multi-token recipe
+      const inputParts = recipe.inputs.map(({ tokenId, amount }) => {
+        const token = getToken(tokenId);
+        return `${amount}${token?.emoji || '●'}`;
+      }).join('+');
+      
+      const outputParts = recipe.outputs.map(({ tokenId, amount }) => {
+        const token = getToken(tokenId);
+        return `${amount}${token?.emoji || '●'}`;
+      }).join('+');
+      
+      return `${inputParts}→${outputParts}`;
+    }
+    
+    // Legacy ratio display
+    return `${data.inputRatio}→${data.outputRatio}`;
+  };
   
   return (
     <div className={`custom-node node-converter ${activeClass} ${selected ? 'selected' : ''}`}>
       <Handle type="target" position={Position.Left} />
       <div className="node-label">{data.label}</div>
-      <div className="node-value">{data.resources}</div>
+      <div className="node-value">{formatResources(data.resources)}</div>
       {mode === 'script' ? (
         <div className="node-ratio">⚙️ 📜</div>
       ) : mode === 'formula' && data.formula ? (
         <div className="node-ratio">⚙️ f(x)→out</div>
       ) : (
-        <div className="node-ratio">⚙️ {data.inputRatio}→{data.outputRatio}</div>
+        <div className="node-ratio">⚙️ {renderRecipe()}</div>
       )}
       {lastConverted > 0 && <div className="node-rate">→ +{formatResources(lastConverted)}/tick</div>}
       <Handle type="source" position={Position.Right} />

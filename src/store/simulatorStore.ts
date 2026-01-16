@@ -9,10 +9,16 @@ import {
   NodeChange,
   EdgeChange,
 } from '@xyflow/react';
-import { NodeData, NodeType, nodeDefaults } from '../types';
+import { NodeData, NodeType, nodeDefaults, TypedResources } from '../types';
 import { getTemplateById } from '../templates';
 import { evaluateFormula } from '../utils/formulaEvaluator';
 import { executeScript } from '../utils/scriptRunner';
+import { 
+  getTotalResources, 
+  addTokenResources, 
+  removeTokenResources,
+  getTokenResources 
+} from '../utils/migration';
 import { migrateNodes } from '../utils/migration';
 
 // Edge data type
@@ -34,9 +40,10 @@ interface ClipboardData {
 }
 
 // Resource history entry for charts
+// Now includes both per-node totals and global token totals
 export interface ResourceHistoryEntry {
   tick: number;
-  [nodeId: string]: number;
+  [key: string]: number; // nodeId -> total, or `token:${tokenId}` -> global token total
 }
 
 // Project save format
@@ -468,7 +475,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   tick: () => {
     const { nodes, edges, currentTick } = get();
 
-    const nodeMap = new Map(nodes.map((n) => [n.id, { ...n, data: { ...n.data } }]));
+    const nodeMap = new Map(nodes.map((n) => [n.id, { ...n, data: { ...n.data, typedResources: { ...n.data.typedResources } } }]));
     for (const node of nodeMap.values()) {
       node.data.lastSent = 0;
       if (node.data.nodeType === 'source') node.data.lastProduced = 0;
@@ -477,27 +484,54 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       if (node.data.nodeType === 'drain') node.data.lastConsumed = 0;
     }
 
-    // Snapshot resources at the start of the tick.
+    // Snapshot typed resources at the start of the tick.
     // Transfers are computed from the snapshot and applied at the end of the tick (no multi-hop in one tick).
+    const baseTypedResources = new Map<string, TypedResources>();
+    for (const node of nodeMap.values()) {
+      baseTypedResources.set(node.id, { ...node.data.typedResources });
+    }
+
+    // Legacy single-value resources for backward compat
     const baseResources = new Map<string, number>();
     for (const node of nodeMap.values()) baseResources.set(node.id, node.data.resources);
 
+    // Typed deltas: nodeId -> { tokenId -> amount }
+    const incomingTypedDelta = new Map<string, TypedResources>();
+    const sentTypedAmount = new Map<string, TypedResources>();
+    
+    // Legacy single-value deltas (for backward compat)
     const incomingDelta = new Map<string, number>();
     const sentAmount = new Map<string, number>();
-    const converterConsumed = new Map<string, number>();
+    const converterConsumed = new Map<string, TypedResources>();
 
-    const addIncoming = (nodeId: string, amount: number) => {
+    const addTypedIncoming = (nodeId: string, tokenId: string, amount: number) => {
       if (amount <= 0) return;
+      const current = incomingTypedDelta.get(nodeId) ?? {};
+      incomingTypedDelta.set(nodeId, addTokenResources(current, tokenId, amount));
+      // Legacy
       incomingDelta.set(nodeId, (incomingDelta.get(nodeId) ?? 0) + amount);
     };
 
-    const addSent = (nodeId: string, amount: number) => {
+    const addTypedSent = (nodeId: string, tokenId: string, amount: number) => {
       if (amount <= 0) return;
+      const current = sentTypedAmount.get(nodeId) ?? {};
+      sentTypedAmount.set(nodeId, addTokenResources(current, tokenId, amount));
+      // Legacy
       sentAmount.set(nodeId, (sentAmount.get(nodeId) ?? 0) + amount);
     };
 
+    const getEffectiveTypedResources = (nodeId: string): TypedResources => {
+      const base = baseTypedResources.get(nodeId) ?? {};
+      const incoming = incomingTypedDelta.get(nodeId) ?? {};
+      const result: TypedResources = { ...base };
+      for (const [tokenId, amount] of Object.entries(incoming)) {
+        result[tokenId] = (result[tokenId] ?? 0) + amount;
+      }
+      return result;
+    };
+
     const getEffectiveTargetResources = (nodeId: string) => {
-      return (baseResources.get(nodeId) ?? 0) + (incomingDelta.get(nodeId) ?? 0);
+      return getTotalResources(getEffectiveTypedResources(nodeId));
     };
 
     const getTargetSpace = (target: Node<NodeData>) => {
@@ -507,12 +541,12 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       return Math.max(0, cap - getEffectiveTargetResources(target.id));
     };
 
-    const recordTransfer = (from: Node<NodeData>, to: Node<NodeData>, amount: number) => {
+    const recordTypedTransfer = (from: Node<NodeData>, to: Node<NodeData>, tokenId: string, amount: number) => {
       if (amount <= 0) return;
-      addSent(from.id, amount);
+      addTypedSent(from.id, tokenId, amount);
       from.data.lastSent = (from.data.lastSent ?? 0) + amount;
 
-      addIncoming(to.id, amount);
+      addTypedIncoming(to.id, tokenId, amount);
       if (to.data.nodeType === 'drain') {
         to.data.lastConsumed = (to.data.lastConsumed ?? 0) + amount;
       } else if (to.data.nodeType === 'pool') {
@@ -591,16 +625,18 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     }
 
     // Phase 2: transfer along edges based on snapshot resources.
+    // For Source: transfers the token type specified by tokenType
+    // For Pool: transfers tokens proportionally (or by type if filtered)
     for (const [sourceId, outgoingEdges] of edgesBySource) {
       const source = nodeMap.get(sourceId);
       if (!source || !source.data.isActive) continue;
 
       if (source.data.nodeType === 'converter' || source.data.nodeType === 'drain') continue;
 
-      const isSource = source.data.nodeType === 'source';
+      const isSourceNode = source.data.nodeType === 'source';
 
       const prob = source.data.probability ?? 100;
-      if (!isSource && !checkProbability(prob)) continue;
+      if (!isSourceNode && !checkProbability(prob)) continue;
 
       if (source.data.nodeType === 'gate') {
         const condition = source.data.gateCondition ?? 'always';
@@ -612,7 +648,19 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       }
 
       const productionThisTick = sourceProductionThisTick.get(sourceId) ?? 0;
-      let available = (baseResources.get(sourceId) ?? 0) + (isSource ? productionThisTick : 0);
+      
+      // For Source: determine token type and available amount
+      // For Pool/Gate: get all typed resources
+      let availableTyped: TypedResources;
+      if (isSourceNode) {
+        const tokenType = source.data.tokenType || 'black';
+        const baseAmount = getTokenResources(baseTypedResources.get(sourceId) ?? {}, tokenType);
+        availableTyped = { [tokenType]: baseAmount + productionThisTick };
+      } else {
+        availableTyped = { ...(baseTypedResources.get(sourceId) ?? {}) };
+      }
+      
+      let available = getTotalResources(availableTyped);
       if (available <= 0) continue;
 
       const distributionMode = source.data.distributionMode ?? 'continuous';
@@ -631,6 +679,65 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
       if (validEdges.length === 0) continue;
 
+      // Helper to transfer typed resources
+      const transferTyped = (target: Node<NodeData>, totalAmount: number) => {
+        if (totalAmount <= 0) return;
+        
+        // Round to integer
+        let amountToTransfer = Math.floor(totalAmount);
+        if (amountToTransfer <= 0) return;
+        
+        // For Source nodes: transfer only the tokenType
+        if (isSourceNode) {
+          const tokenType = source.data.tokenType || 'black';
+          const avail = availableTyped[tokenType] ?? 0;
+          const toTransfer = Math.min(avail, amountToTransfer);
+          if (toTransfer > 0) {
+            recordTypedTransfer(source, target, tokenType, toTransfer);
+            availableTyped[tokenType] = (availableTyped[tokenType] ?? 0) - toTransfer;
+            available -= toTransfer;
+          }
+          return;
+        }
+        
+        // For Pool/Gate: transfer proportionally from available tokens (integers)
+        const totalAvail = getTotalResources(availableTyped);
+        if (totalAvail <= 0) return;
+        
+        // Transfer tokens one by one to maintain integer counts
+        let transferred = 0;
+        for (const [tokenId, tokenAmount] of Object.entries(availableTyped)) {
+          if (tokenAmount <= 0 || transferred >= amountToTransfer) continue;
+          const proportion = tokenAmount / totalAvail;
+          const toTransfer = Math.min(Math.floor(tokenAmount), Math.floor(amountToTransfer * proportion));
+          if (toTransfer > 0) {
+            recordTypedTransfer(source, target, tokenId, toTransfer);
+            availableTyped[tokenId] = (availableTyped[tokenId] ?? 0) - toTransfer;
+            available -= toTransfer;
+            transferred += toTransfer;
+          }
+        }
+        
+        // If we haven't transferred enough due to rounding, transfer remaining from largest token
+        while (transferred < amountToTransfer) {
+          const largestToken = Object.entries(availableTyped)
+            .filter(([, v]) => v > 0)
+            .sort((a, b) => b[1] - a[1])[0];
+          if (!largestToken) break;
+          
+          const [tokenId, tokenAmount] = largestToken;
+          const toTransfer = Math.min(1, tokenAmount, amountToTransfer - transferred);
+          if (toTransfer > 0) {
+            recordTypedTransfer(source, target, tokenId, toTransfer);
+            availableTyped[tokenId] = (availableTyped[tokenId] ?? 0) - toTransfer;
+            available -= toTransfer;
+            transferred += toTransfer;
+          } else {
+            break;
+          }
+        }
+      };
+
       if (distributionMode === 'continuous') {
         const totalFlowRates = validEdges.reduce((sum, e) => sum + e.flowRate, 0);
         const totalAvailable = available;
@@ -640,8 +747,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
           const allocated = totalAvailable * proportion;
           const actualFlow = Math.min(allocated, flowRate, getTargetSpace(target), available);
           if (actualFlow > 0) {
-            available -= actualFlow;
-            recordTransfer(source, target, actualFlow);
+            transferTyped(target, actualFlow);
           }
         }
       } else {
@@ -657,9 +763,8 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
             const canSend = Math.min(1, flowRate, targetSpace, remaining);
             if (canSend >= 1) {
-              available -= 1;
+              transferTyped(target, 1);
               remaining -= 1;
-              recordTransfer(source, target, 1);
 
               lastIndex = (idx + 1) % validEdges.length;
               found = true;
@@ -683,18 +788,47 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     }
 
     // Phase 3: converters transform input (snapshot) into output and distribute the produced output.
+    // Supports both legacy single-ratio mode and new multi-token recipe mode.
     for (const node of nodeMap.values()) {
       if (node.data.nodeType !== 'converter' || !node.data.isActive) continue;
 
-      const inputResources = baseResources.get(node.id) ?? 0;
+      const inputTyped = baseTypedResources.get(node.id) ?? {};
+      const inputResources = getTotalResources(inputTyped);
       if (inputResources <= 0) continue;
 
       const mode = node.data.processingMode || (node.data.useFormula ? 'formula' : 'fixed');
+      const recipe = node.data.recipe;
 
-      let outputAmount: number;
-      let inputConsumed: number;
+      // Output tokens and amounts to produce
+      let outputTokens: TypedResources = {};
+      let consumedTokens: TypedResources = {};
+      let totalOutputAmount = 0;
 
-      if (mode === 'formula' && node.data.formula) {
+      if (recipe && recipe.inputs.length > 0 && recipe.outputs.length > 0) {
+        // Multi-token recipe mode
+        // Calculate how many complete conversions we can do based on available inputs
+        let maxConversions = Infinity;
+        
+        for (const input of recipe.inputs) {
+          const available = getTokenResources(inputTyped, input.tokenId);
+          const possible = Math.floor(available / input.amount);
+          maxConversions = Math.min(maxConversions, possible);
+        }
+        
+        if (maxConversions <= 0 || !Number.isFinite(maxConversions)) continue;
+        
+        // Calculate consumed inputs
+        for (const input of recipe.inputs) {
+          consumedTokens[input.tokenId] = input.amount * maxConversions;
+        }
+        
+        // Calculate produced outputs
+        for (const output of recipe.outputs) {
+          outputTokens[output.tokenId] = (outputTokens[output.tokenId] ?? 0) + output.amount * maxConversions;
+          totalOutputAmount += output.amount * maxConversions;
+        }
+      } else if (mode === 'formula' && node.data.formula) {
+        // Formula mode - legacy single-token behavior
         const result = evaluateFormula(node.data.formula, {
           resources: inputResources,
           tick: currentTick,
@@ -703,27 +837,48 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         });
 
         if (result === null || result <= 0) continue;
-        outputAmount = result;
-        inputConsumed = inputResources;
+        
+        // Transfer all input types proportionally to output as 'black' token
+        outputTokens = { black: result };
+        totalOutputAmount = result;
+        consumedTokens = { ...inputTyped }; // Consume all
       } else if (mode === 'script' && node.data.script) {
+        // Script mode - legacy single-token behavior
         const cachedOutput = node.data.scriptState?.lastOutput;
         if (typeof cachedOutput !== 'number' || cachedOutput <= 0) continue;
-        outputAmount = cachedOutput;
-        inputConsumed = inputResources;
+        
+        outputTokens = { black: cachedOutput };
+        totalOutputAmount = cachedOutput;
+        consumedTokens = { ...inputTyped }; // Consume all
       } else {
+        // Legacy fixed ratio mode - uses dominant token type
         const inputRatio = node.data.inputRatio ?? 2;
         const outputRatio = node.data.outputRatio ?? 1;
         const conversions = Math.floor(inputResources / inputRatio);
         if (conversions <= 0) continue;
-        outputAmount = conversions * outputRatio;
-        inputConsumed = conversions * inputRatio;
+        
+        const outputAmount = conversions * outputRatio;
+        const inputConsumed = conversions * inputRatio;
+        
+        // Output as dominant token type (or black)
+        const dominantToken = Object.entries(inputTyped)
+          .sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'black';
+        
+        outputTokens = { [dominantToken]: outputAmount };
+        totalOutputAmount = outputAmount;
+        
+        // Consume proportionally from all input tokens
+        const consumeRatio = inputConsumed / inputResources;
+        for (const [tokenId, amount] of Object.entries(inputTyped)) {
+          consumedTokens[tokenId] = Math.floor(amount * consumeRatio);
+        }
       }
 
       const outputEdges = edgesBySource.get(node.id) ?? [];
       if (outputEdges.length === 0) continue;
 
       const distributionMode = node.data.distributionMode ?? 'continuous';
-      let outputAvailable = outputAmount;
+      let outputAvailable = { ...outputTokens };
       let actualOutputUsed = 0;
 
       const validEdges: { target: Node<NodeData>; flowRate: number; targetSpace: number }[] = [];
@@ -740,23 +895,40 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
       if (validEdges.length === 0) continue;
 
+      // Helper to transfer typed outputs
+      const transferConverterOutput = (target: Node<NodeData>, totalAmount: number) => {
+        if (totalAmount <= 0) return;
+        
+        const totalAvail = getTotalResources(outputAvailable);
+        if (totalAvail <= 0) return;
+        
+        for (const [tokenId, tokenAmount] of Object.entries(outputAvailable)) {
+          if (tokenAmount <= 0) continue;
+          const proportion = tokenAmount / totalAvail;
+          const toTransfer = Math.min(tokenAmount, totalAmount * proportion);
+          if (toTransfer > 0) {
+            recordTypedTransfer(node, target, tokenId, toTransfer);
+            outputAvailable[tokenId] = (outputAvailable[tokenId] ?? 0) - toTransfer;
+            actualOutputUsed += toTransfer;
+          }
+        }
+      };
+
       if (distributionMode === 'continuous') {
         const totalFlowRates = validEdges.reduce((sum, e) => sum + e.flowRate, 0);
-        const totalAvailable = outputAvailable;
+        const totalAvailableOutput = getTotalResources(outputAvailable);
 
         for (const { target, flowRate } of validEdges) {
           const proportion = flowRate / totalFlowRates;
-          const allocated = totalAvailable * proportion;
-          const actualFlow = Math.min(allocated, flowRate, getTargetSpace(target), outputAvailable);
+          const allocated = totalAvailableOutput * proportion;
+          const actualFlow = Math.min(allocated, flowRate, getTargetSpace(target), getTotalResources(outputAvailable));
           if (actualFlow > 0) {
-            outputAvailable -= actualFlow;
-            actualOutputUsed += actualFlow;
-            recordTransfer(node, target, actualFlow);
+            transferConverterOutput(target, actualFlow);
           }
         }
       } else {
         let lastIndex = node.data.lastDistributionIndex ?? 0;
-        let remaining = Math.floor(outputAvailable);
+        let remaining = Math.floor(getTotalResources(outputAvailable));
 
         while (remaining > 0 && validEdges.length > 0) {
           let found = false;
@@ -767,10 +939,8 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
             const canSend = Math.min(1, flowRate, targetSpace, remaining);
             if (canSend >= 1) {
-              outputAvailable -= 1;
+              transferConverterOutput(target, 1);
               remaining -= 1;
-              actualOutputUsed += 1;
-              recordTransfer(node, target, 1);
 
               lastIndex = (idx + 1) % validEdges.length;
               found = true;
@@ -794,38 +964,65 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
       node.data.lastConverted = actualOutputUsed;
 
-      // Consume input proportionally to actual output (formula/script) or by ratio (fixed).
-      if (mode === 'formula' || mode === 'script') {
-        const ratio = outputAmount > 0 ? actualOutputUsed / outputAmount : 0;
-        converterConsumed.set(node.id, Math.max(0, Math.min(inputResources, Math.floor(inputConsumed * ratio))));
-      } else {
-        const outputRatio = node.data.outputRatio ?? 1;
-        const inputRatio = node.data.inputRatio ?? 2;
-        const actualConversions = Math.ceil(actualOutputUsed / outputRatio);
-        converterConsumed.set(node.id, Math.max(0, Math.min(inputResources, actualConversions * inputRatio)));
+      // Store consumed tokens for end-of-tick processing
+      // Scale consumed tokens by actual output ratio
+      const outputRatioUsed = totalOutputAmount > 0 ? actualOutputUsed / totalOutputAmount : 0;
+      const scaledConsumed: TypedResources = {};
+      for (const [tokenId, amount] of Object.entries(consumedTokens)) {
+        scaledConsumed[tokenId] = Math.floor(amount * outputRatioUsed);
       }
+      converterConsumed.set(node.id, scaledConsumed);
     }
 
     // Apply deltas at end of tick (snapshot semantics)
+    // Now handles typed resources properly
     for (const node of nodeMap.values()) {
-      const base = baseResources.get(node.id) ?? 0;
+      const baseTyped = baseTypedResources.get(node.id) ?? {};
+      const incomingTyped = incomingTypedDelta.get(node.id) ?? {};
+      const sentTyped = sentTypedAmount.get(node.id) ?? {};
+      
+      // Legacy incoming value for overflow calculation
       const incoming = incomingDelta.get(node.id) ?? 0;
-      const sent = sentAmount.get(node.id) ?? 0;
 
       if (node.data.nodeType === 'source') {
         const produced = sourceProductionThisTick.get(node.id) ?? 0;
-        let preCap = base + produced - sent + incoming;
-
+        const tokenType = node.data.tokenType || 'black';
+        
+        // Calculate new typed resources
+        let newTyped = { ...baseTyped };
+        
+        // Add produced tokens
+        newTyped = addTokenResources(newTyped, tokenType, produced);
+        
+        // Subtract sent tokens
+        for (const [tokenId, amount] of Object.entries(sentTyped)) {
+          newTyped = removeTokenResources(newTyped, tokenId, amount);
+        }
+        
+        // Add incoming tokens
+        for (const [tokenId, amount] of Object.entries(incomingTyped)) {
+          newTyped = addTokenResources(newTyped, tokenId, amount);
+        }
+        
+        // Apply capacity limit
         const capacity = node.data.capacity ?? -1;
+        let totalNew = getTotalResources(newTyped);
         let overflow = 0;
-        if (capacity !== -1 && Number.isFinite(capacity)) {
-          overflow = Math.max(0, preCap - capacity);
-          preCap = Math.min(preCap, capacity);
+        
+        if (capacity !== -1 && Number.isFinite(capacity) && totalNew > capacity) {
+          overflow = totalNew - capacity;
+          // Scale down all tokens proportionally
+          const scale = capacity / totalNew;
+          for (const tokenId of Object.keys(newTyped)) {
+            newTyped[tokenId] = Math.floor(newTyped[tokenId] * scale);
+          }
+          totalNew = getTotalResources(newTyped);
         }
 
-        node.data.resources = Math.max(0, preCap);
+        node.data.typedResources = newTyped;
+        node.data.resources = totalNew;
 
-        // Prefer discarding incoming first, then produced (so incoming doesn't reduce totalProduced).
+        // Track production
         const discardedIncoming = Math.min(incoming, overflow);
         const overflowAfterIncoming = overflow - discardedIncoming;
         const discardedProduced = Math.min(produced, overflowAfterIncoming);
@@ -837,27 +1034,90 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       }
 
       if (node.data.nodeType === 'converter') {
-        const consumed = converterConsumed.get(node.id) ?? 0;
-        node.data.resources = Math.max(0, base - consumed + incoming);
+        const consumed = converterConsumed.get(node.id) ?? {};
+        
+        let newTyped = { ...baseTyped };
+        
+        // Subtract consumed tokens
+        for (const [tokenId, amount] of Object.entries(consumed)) {
+          newTyped = removeTokenResources(newTyped, tokenId, amount);
+        }
+        
+        // Add incoming tokens
+        for (const [tokenId, amount] of Object.entries(incomingTyped)) {
+          newTyped = addTokenResources(newTyped, tokenId, amount);
+        }
+        
+        node.data.typedResources = newTyped;
+        node.data.resources = getTotalResources(newTyped);
         continue;
       }
 
       if (node.data.nodeType === 'drain') {
-        node.data.resources = base + incoming;
+        // Drain accumulates all tokens
+        let newTyped = { ...baseTyped };
+        
+        for (const [tokenId, amount] of Object.entries(incomingTyped)) {
+          newTyped = addTokenResources(newTyped, tokenId, amount);
+        }
+        
+        node.data.typedResources = newTyped;
+        node.data.resources = getTotalResources(newTyped);
         continue;
       }
 
-      node.data.resources = Math.max(0, base - sent + incoming);
+      // Pool and other nodes
+      let newTyped = { ...baseTyped };
+      
+      // Subtract sent tokens
+      for (const [tokenId, amount] of Object.entries(sentTyped)) {
+        newTyped = removeTokenResources(newTyped, tokenId, amount);
+      }
+      
+      // Add incoming tokens
+      for (const [tokenId, amount] of Object.entries(incomingTyped)) {
+        newTyped = addTokenResources(newTyped, tokenId, amount);
+      }
+      
+      // Apply capacity for pools
+      if (node.data.nodeType === 'pool') {
+        const capacity = node.data.capacity ?? -1;
+        let totalNew = getTotalResources(newTyped);
+        
+        if (capacity !== -1 && Number.isFinite(capacity) && totalNew > capacity) {
+          const scale = capacity / totalNew;
+          for (const tokenId of Object.keys(newTyped)) {
+            newTyped[tokenId] = Math.floor(newTyped[tokenId] * scale);
+          }
+        }
+      }
+      
+      node.data.typedResources = newTyped;
+      node.data.resources = getTotalResources(newTyped);
     }
 
     const newTick = currentTick + 1;
     const updatedNodes = Array.from(nodeMap.values());
 
     const historyEntry: ResourceHistoryEntry = { tick: newTick };
+    const tokenTotals: Record<string, number> = {};
+    
     for (const node of updatedNodes) {
       if (node.data.nodeType !== 'drain' && node.data.nodeType !== 'gate') {
         historyEntry[node.id] = node.data.resources;
+        
+        // Accumulate token totals
+        for (const [tokenId, amount] of Object.entries(node.data.typedResources)) {
+          if (amount > 0) {
+            tokenTotals[tokenId] = (tokenTotals[tokenId] || 0) + amount;
+          }
+        }
       }
+    }
+    
+    // Add token totals with prefix
+    for (const [tokenId, amount] of Object.entries(tokenTotals)) {
+      historyEntry[`token:${tokenId}`] = amount;
     }
 
     const newHistory = [...get().resourceHistory, historyEntry].slice(-100);
@@ -888,7 +1148,19 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     const getNode = (id: string) => {
       const node = nodeMap.get(id);
       if (!node) return null;
-      return { resources: node.data.resources, capacity: node.data.capacity };
+      return { 
+        resources: node.data.resources, 
+        capacity: node.data.capacity,
+        tokens: node.data.typedResources,
+        tokenType: node.data.tokenType
+      };
+    };
+    
+    // Create get function (shorthand)
+    const getTokenFromNode = (nodeId: string, tokenId: string): number => {
+      const node = nodeMap.get(nodeId);
+      if (!node) return 0;
+      return getTokenResources(node.data.typedResources, tokenId);
     };
     
     // Execute all scripts in parallel
@@ -902,7 +1174,10 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
             totalProduced: node.data.totalProduced,
             maxProduction: node.data.maxProduction,
             tick: currentTick,
+            tokenType: node.data.tokenType,
+            tokens: node.data.typedResources,
             getNode,
+            get: getTokenFromNode,
             state: node.data.scriptState || {},
           });
           
