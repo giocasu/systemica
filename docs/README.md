@@ -41,13 +41,13 @@ Systemica lets you create interactive diagrams that simulate resource flow in ga
 
 ```bash
 # Clone the repository
-git clone <url>
-cd prod-cons
+git clone https://github.com/giocasu/systemica.git
+cd systemica
 
 # Install dependencies
 npm install
 
-# Start development mode
+# Start development server
 npm run dev
 ```
 
