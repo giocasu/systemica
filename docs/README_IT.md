@@ -41,8 +41,8 @@ Systemica ti permette di creare diagrammi interattivi che simulano il flusso di 
 
 ```bash
 # Clona il repository
-git clone <url>
-cd prod-cons
+git clone https://github.com/giocasu/systemica.git
+cd systemica
 
 # Installa dipendenze
 npm install
