@@ -1,30 +1,30 @@
-# ⚙️ Systemica - Manuale d'Uso
+# Systemica - Manuale d'Uso
 
 Un simulatore visuale di economie di gioco ispirato a **Machinations**, progettato per modellare e testare sistemi Producer-Consumer nei videogiochi.
 
 ---
 
-## 📋 Indice
+## Indice
 
-1. [Introduzione](#-introduzione)
-2. [Avvio Rapido](#-avvio-rapido)
-3. [Interfaccia](#-interfaccia)
-4. [Tipi di Nodo](#-tipi-di-nodo)
-5. [Sistema Token](#-sistema-token)
-6. [Connessioni](#-connessioni)
-7. [Simulazione](#-simulazione)
-8. [Proprietà Avanzate](#-proprietà-avanzate)
-9. [Template Predefiniti](#-template-predefiniti)
-10. [Formule Custom](#-formule-custom)
-11. [Script Personalizzati](#-script-personalizzati-avanzato)
-12. [Salvataggio e Export](#-salvataggio-e-export)
-13. [Auto-save e Condivisione](#-auto-save-e-condivisione)
-14. [Scorciatoie da Tastiera](#-scorciatoie-da-tastiera)
-15. [Casi d'Uso](#-casi-duso)
+1. [Introduzione](#introduzione)
+2. [Avvio Rapido](#avvio-rapido)
+3. [Interfaccia](#interfaccia)
+4. [Tipi di Nodo](#tipi-di-nodo)
+5. [Sistema Token](#sistema-token)
+6. [Connessioni](#connessioni)
+7. [Simulazione](#simulazione)
+8. [Proprietà Avanzate](#proprietà-avanzate)
+9. [Template Predefiniti](#template-predefiniti)
+10. [Formule Custom](#formule-custom)
+11. [Script Personalizzati](#script-personalizzati-avanzato)
+12. [Salvataggio e Export](#salvataggio-e-export)
+13. [Auto-save e Condivisione](#auto-save-e-condivisione)
+14. [Scorciatoie da Tastiera](#scorciatoie-da-tastiera)
+15. [Casi d'Uso](#casi-duso)
 
 ---
 
-## 🎯 Introduzione
+## Introduzione
 
 Systemica ti permette di creare diagrammi interattivi che simulano il flusso di risorse in un sistema di gioco. È ideale per:
 
@@ -35,7 +35,7 @@ Systemica ti permette di creare diagrammi interattivi che simulano il flusso di 
 
 ---
 
-## 🚀 Avvio Rapido
+## Avvio Rapido
 
 ### Installazione
 
@@ -56,16 +56,16 @@ npm run dev
 1. **Trascina** un nodo `Source` dalla palette al canvas
 2. **Trascina** un nodo `Pool` accanto ad esso
 3. **Connetti**: clicca sul pallino destro del Source e trascina al pallino sinistro del Pool
-4. **Avvia**: clicca su ▶️ Play
+4. **Avvia**: clicca su  Play
 5. Osserva le risorse fluire!
 
 ---
 
-## 🖥️ Interfaccia
+## Interfaccia
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  ⚙️ Systemica                [▶️][⏭️][🔄][🏃⎯⎯●⎯⎯] [↩️][↪️]...   │  ← Toolbar
+│  Systemica                [][][🔄][⎯⎯⎯⎯] [][]...   │  ← Toolbar
 ├─────────────────────────────────────────────────────────────────┤
 │                                                    ┌──────────┐ │
 │                                                    │Properties│ │
@@ -75,7 +75,7 @@ npm run dev
 │                                                    │  Chart   │ │
 │         [Minimap]                                  │          │ │
 └─────────────────────────────────────────────────────────────────┤
-│  Tick: 42   |   Nodes: 5   |   Edges: 4   |   Running ●        │  ← Status Bar
+│  Tick: 42   |   Nodes: 5   |   Edges: 4   |   Running         │  ← Status Bar
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -83,20 +83,20 @@ npm run dev
 
 | Controllo | Descrizione |
 |-----------|-------------|
-| ▶️ Play / ⏸️ Pause | Avvia/ferma simulazione automatica |
-| ⏭️ Step | Esegue un singolo tick |
-| 🔄 Reset | Riporta risorse ai valori iniziali |
-| 🏃 Slider | Velocità simulazione (0.1x - 5x) |
-| ↩️ Undo | Annulla ultima azione (Ctrl+Z) |
-| ↪️ Redo | Ripristina azione (Ctrl+Y) |
-| 📋 Copy | Copia nodo/i selezionato/i (Ctrl+C) |
-| 📄 Paste | Incolla nodo (Ctrl+V) |
-| 💾 Save | Salva progetto come JSON |
-| 📂 Load | Carica progetto JSON |
-| 📊 CSV | Esporta statistiche simulazione |
-| 📋 Templates | Carica scenario predefinito |
-| 🔗 Share | Copia link condivisibile negli appunti |
-| 🧹 Clear | Pulisce il canvas (mantiene undo) |
+|  Play /  Pause | Avvia/ferma simulazione automatica |
+|  Step | Esegue un singolo tick |
+| Reset | Riporta risorse ai valori iniziali |
+|  Slider | Velocità simulazione (0.1x - 5x) |
+|  Undo | Annulla ultima azione (Ctrl+Z) |
+|  Redo | Ripristina azione (Ctrl+Y) |
+| Copy | Copia nodo/i selezionato/i (Ctrl+C) |
+|  Paste | Incolla nodo (Ctrl+V) |
+| Save | Salva progetto come JSON |
+|  Load | Carica progetto JSON |
+|  CSV | Esporta statistiche simulazione |
+| Templates | Carica scenario predefinito |
+| Share | Copia link condivisibile negli appunti |
+|  Clear | Pulisce il canvas (mantiene undo) |
 
 ### Palette Nodi
 
@@ -105,17 +105,17 @@ Su dispositivi touch: long-press su un nodo, poi trascina sul canvas.
 
 | Icona | Tipo | Funzione |
 |-------|------|----------|
-| ⬆️ | Source | Produce risorse |
-| 🔵 | Pool | Accumula risorse |
-| ⬇️ | Drain | Consuma risorse |
-| 🔄 | Converter | Trasforma risorse |
-| 🚪 | Gate | Controlla flusso |
+| | Source | Produce risorse |
+| | Pool | Accumula risorse |
+| | Drain | Consuma risorse |
+| | Converter | Trasforma risorse |
+| | Gate | Controlla flusso |
 
 ---
 
-## 🧩 Tipi di Nodo
+## Tipi di Nodo
 
-### ⬆️ Source (Sorgente)
+### Source (Sorgente)
 
 Produce risorse automaticamente ad ogni tick oppure manualmente con click.
 
@@ -134,8 +134,8 @@ Produce risorse automaticamente ad ogni tick oppure manualmente con click.
 Nota: le sorgenti manuali producono solo quando la simulazione è in esecuzione (Play).
 
 **Modalità di Distribuzione:**
-- **💧 Continuous**: Risorse divisibili (acqua, oro, energia). 1/tick → 2 output = 0.5 ciascuno
-- **🔩 Discrete**: Risorse atomiche (oggetti, carte). 1/tick → 2 output = alternato 1,0,1,0...
+- **Continuous**: Risorse divisibili (acqua, oro, energia). 1/tick → 2 output = 0.5 ciascuno
+- **Discrete**: Risorse atomiche (oggetti, carte). 1/tick → 2 output = alternato 1,0,1,0...
 
 **Esempi d'uso:**
 - Spawn di nemici
@@ -150,7 +150,7 @@ Nota: le sorgenti manuali producono solo quando la simulazione è in esecuzione 
 
 ---
 
-### 🔵 Pool (Accumulo)
+### Pool (Accumulo)
 
 Accumula risorse con capacità opzionale.
 
@@ -169,7 +169,7 @@ Accumula risorse con capacità opzionale.
 
 ---
 
-### ⬇️ Drain (Consumatore)
+### Drain (Consumatore)
 
 Consuma e rimuove risorse dal sistema.
 
@@ -187,7 +187,7 @@ Consuma e rimuove risorse dal sistema.
 
 ---
 
-### 🔄 Converter (Convertitore)
+### Converter (Convertitore)
 
 Trasforma risorse in input in risorse in output.
 
@@ -209,7 +209,7 @@ Trasforma risorse in input in risorse in output.
 
 ---
 
-### 🚪 Gate (Porta Condizionale)
+### Gate (Porta Condizionale)
 
 Trasferisce risorse solo se una condizione è soddisfatta.
 
@@ -232,7 +232,7 @@ Trasferisce risorse solo se una condizione è soddisfatta.
 
 ---
 
-## 🎮 Sistema Token
+## Sistema Token
 
 Systemica supporta **risorse tipizzate** (token) ispirate a Machinations. Invece di risorse generiche, puoi creare tipi di token distinti con colori e icone.
 
@@ -240,11 +240,11 @@ Systemica supporta **risorse tipizzate** (token) ispirate a Machinations. Invece
 
 | Token | Colore | Emoji |
 |-------|--------|-------|
-| Black (default) | #1a1a2e | ⚫ |
-| Blue | #4361ee | 🔵 |
-| Green | #2ec4b6 | 🟢 |
-| Orange | #ff9f1c | 🟠 |
-| Red | #e94560 | 🔴 |
+| Black (default) | #1a1a2e |  |
+| Blue | #4361ee | |
+| Green | #2ec4b6 |  |
+| Orange | #ff9f1c |  |
+| Red | #e94560 |  |
 
 ### Token Custom
 
@@ -305,11 +305,11 @@ node.tokenType      // Tipo token (per source)
 
 ---
 
-## 🔗 Connessioni
+## Connessioni
 
 ### Creare una Connessione
 
-1. Clicca sul **pallino destro** (●) del nodo sorgente
+1. Clicca sul **pallino destro** () del nodo sorgente
 2. Trascina verso il **pallino sinistro** del nodo destinazione
 3. Rilascia per creare la connessione
 
@@ -332,7 +332,7 @@ Il flow rate è visualizzato come etichetta sulla connessione.
 
 ---
 
-## ⚡ Simulazione
+## Simulazione
 
 ### Tick
 
@@ -350,21 +350,21 @@ Note:
 
 | Azione | Risultato |
 |--------|-----------|
-| ▶️ Play | Avvia simulazione continua |
-| ⏸️ Pause | Ferma simulazione |
-| ⏭️ Step | Esegue singolo tick (utile per debug) |
-| 🔄 Reset | Riporta tutto allo stato iniziale |
+|  Play | Avvia simulazione continua |
+|  Pause | Ferma simulazione |
+|  Step | Esegue singolo tick (utile per debug) |
+| Reset | Riporta tutto allo stato iniziale |
 
 ### Velocità
 
-Usa lo **slider 🏃** per regolare la velocità:
+Usa lo **slider ** per regolare la velocità:
 - **0.1x**: Molto lento (1 tick ogni 10 secondi)
 - **1x**: Normale (1 tick/secondo)
 - **5x**: Veloce (5 tick/secondo)
 
 ---
 
-## ⚙️ Proprietà Avanzate
+## Proprietà Avanzate
 
 ### Probability (Tutti i nodi)
 
@@ -376,35 +376,35 @@ Ogni nodo ha un valore **Probability** (0-100%):
 
 ### Formule Custom (Source)
 
-I nodi Source possono usare formule invece di un rate fisso. Vedi [Formule Custom](#-formule-custom).
+I nodi Source possono usare formule invece di un rate fisso. Vedi [Formule Custom](#formule-custom).
 
 ---
 
-## 📋 Template Predefiniti
+## Template Predefiniti
 
-Clicca su **📋 Templates** per caricare scenari pronti:
+Clicca su **Templates** per caricare scenari pronti:
 
-### 🚀 Starter
+### Starter
 Setup minimale: Source → Pool → Drain.
 
-### 🗡️ Loot System
+### Loot System
 Simula drop di loot dai nemici verso l'inventario del giocatore.
 
-### ⚡ Energy Regen
+### Energy Regen
 Sistema di stamina con rigenerazione nel tempo e consumo per azioni.
 
-### 🔨 Crafting
+### Crafting
 Sistema di raccolta materiali e crafting di oggetti.
 
-### 💰 Economy Loop
+### Economy Loop
 Ciclo economico: lavoro → guadagno → spesa → shop.
 
-### 🔮 Mana System
+### Mana System
 Sistema magico con rigenerazione mana e consumo spell.
 
 ---
 
-## 📐 Formule Custom
+## Formule Custom
 
 Per i nodi **Source** e **Converter**, puoi usare formule invece di un valore fisso.
 
@@ -463,14 +463,14 @@ max(0, 10 - totalProduced * 0.1)  // Rallenta dopo molte produzioni
 
 ---
 
-## 📜 Script Personalizzati (Avanzato)
+## Script Personalizzati (Avanzato)
 
 Per logiche complesse oltre le semplici formule, i nodi **Source** e **Converter** supportano script JavaScript eseguiti in una sandbox sicura (QuickJS WebAssembly).
 
 ### Attivazione
 
 1. Seleziona un nodo Source o Converter
-2. Nel pannello proprietà, clicca il pulsante modalità **📜 Script**
+2. Nel pannello proprietà, clicca il pulsante modalità **Script**
 3. Inserisci il tuo codice JavaScript
 4. Lo script deve restituire un numero
 
@@ -569,24 +569,24 @@ return 1;
 
 ---
 
-## �💾 Salvataggio e Export
+## �Salvataggio e Export
 
 ### Salvare Progetto
 
-1. Clicca **💾 Save**
+1. Clicca **Save**
 2. Inserisci un nome
 3. Il file `.json` viene scaricato
 
 ### Caricare Progetto
 
-1. Clicca **📂 Load**
+1. Clicca ** Load**
 2. Seleziona un file `.json` precedentemente salvato
 3. Il diagramma viene caricato
 
 ### Export Statistiche CSV
 
 1. Esegui la simulazione per alcuni tick
-2. Clicca **📊 CSV**
+2. Clicca ** CSV**
 3. Scarica un file CSV con i valori delle risorse per ogni tick
 
 Il CSV contiene:
@@ -597,7 +597,7 @@ Utile per analisi in Excel, Google Sheets, ecc.
 
 ---
 
-## 🔗 Auto-save e Condivisione
+## Auto-save e Condivisione
 
 ### Auto-save
 
@@ -612,7 +612,7 @@ Il tuo lavoro viene **salvato automaticamente** nel browser (localStorage):
 Genera un URL unico per condividere il tuo diagramma:
 
 1. Crea il tuo diagramma
-2. Clicca **🔗 Share** (angolo in alto a sinistra del canvas)
+2. Clicca **Share** (angolo in alto a sinistra del canvas)
 3. Il link viene copiato negli appunti
 4. Invia il link a chiunque!
 
@@ -621,19 +621,19 @@ Chi apre il link vedrà esattamente il tuo diagramma.
 **Note tecniche:**
 - Lo stato del canvas viene compresso (gzip) e codificato nell'URL
 - Funziona meglio per diagrammi piccoli/medi
-- Per progetti grandi, usa **💾 Save** per scaricare il file JSON
+- Per progetti grandi, usa **Save** per scaricare il file JSON
 
 ### Pulsanti di Validazione
 
 Sia la modalità **Formula** che **Script** includono un pulsante **✓ Validate**:
 
 - Clicca per verificare la sintassi prima dell'esecuzione
-- ✅ Verde = valido
-- ❌ Rosso = errore con messaggio
+-  Verde = valido
+-  Rosso = errore con messaggio
 
 ---
 
-## ⌨️ Scorciatoie da Tastiera
+## Scorciatoie da Tastiera
 
 | Tasto | Azione |
 |-------|--------|
@@ -650,7 +650,7 @@ Selezione:
 
 ---
 
-## 🎮 Casi d'Uso
+## Casi d'Uso
 
 ### 1. Bilanciamento Economia
 
@@ -686,7 +686,7 @@ Tipico dei mobile games:
 
 ---
 
-## 🛠️ Tecnologie
+## Tecnologie
 
 | Tecnologia | Uso |
 |------------|-----|
@@ -699,7 +699,7 @@ Tipico dei mobile games:
 
 ---
 
-## 📚 Riferimenti
+## Riferimenti
 
 - [Machinations](https://machinations.io/) - Tool di ispirazione
 - [Game Mechanics: Advanced Game Design](https://www.amazon.com/Game-Mechanics-Advanced-Design-Voices/dp/0321820274) - Libro di E. Adams e J. Dormans

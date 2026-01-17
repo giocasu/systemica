@@ -1,30 +1,30 @@
-# ⚙️ Systemica - User Manual
+# Systemica - User Manual
 
 A visual game economy simulator inspired by **Machinations**, designed to model and test Producer-Consumer systems in video games.
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
-1. [Introduction](#-introduction)
-2. [Quick Start](#-quick-start)
-3. [Interface](#-interface)
-4. [Node Types](#-node-types)
-5. [Token System](#-token-system)
-6. [Connections](#-connections)
-7. [Simulation](#-simulation)
-8. [Advanced Properties](#-advanced-properties)
-9. [Pre-built Templates](#-pre-built-templates)
-10. [Custom Formulas](#-custom-formulas)
-11. [Custom Scripts](#-custom-scripts-advanced)
-12. [Save and Export](#-save-and-export)
-13. [Auto-save and Sharing](#-auto-save-and-sharing)
-14. [Keyboard Shortcuts](#-keyboard-shortcuts)
-15. [Use Cases](#-use-cases)
+1. [Introduction](#introduction)
+2. [Quick Start](#quick-start)
+3. [Interface](#interface)
+4. [Node Types](#node-types)
+5. [Token System](#token-system)
+6. [Connections](#connections)
+7. [Simulation](#simulation)
+8. [Advanced Properties](#advanced-properties)
+9. [Pre-built Templates](#pre-built-templates)
+10. [Custom Formulas](#custom-formulas)
+11. [Custom Scripts](#custom-scripts-advanced)
+12. [Save and Export](#save-and-export)
+13. [Auto-save and Sharing](#auto-save-and-sharing)
+14. [Keyboard Shortcuts](#keyboard-shortcuts)
+15. [Use Cases](#use-cases)
 
 ---
 
-## 🎯 Introduction
+## Introduction
 
 Systemica lets you create interactive diagrams that simulate resource flow in game systems. It's ideal for:
 
@@ -35,7 +35,7 @@ Systemica lets you create interactive diagrams that simulate resource flow in ga
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -56,16 +56,16 @@ npm run dev
 1. **Drag** a `Source` node from the palette onto the canvas
 2. **Drag** a `Pool` node next to it
 3. **Connect**: click on the Source's right handle and drag to the Pool's left handle
-4. **Start**: click ▶️ Play
+4. **Start**: click  Play
 5. Watch the resources flow!
 
 ---
 
-## 🖥️ Interface
+## Interface
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  ⚙️ Systemica                [▶️][⏭️][🔄][🏃⎯⎯●⎯⎯] [↩️][↪️]...   │  ← Toolbar
+│  Systemica                [][][🔄][⎯⎯⎯⎯] [][]...   │  ← Toolbar
 ├─────────────────────────────────────────────────────────────────┤
 │                                                    ┌──────────┐ │
 │                                                    │Properties│ │
@@ -75,7 +75,7 @@ npm run dev
 │                                                    │  Chart   │ │
 │         [Minimap]                                  │          │ │
 └─────────────────────────────────────────────────────────────────┤
-│  Tick: 42   |   Nodes: 5   |   Edges: 4   |   Running ●        │  ← Status Bar
+│  Tick: 42   |   Nodes: 5   |   Edges: 4   |   Running         │  ← Status Bar
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -83,20 +83,20 @@ npm run dev
 
 | Control | Description |
 |---------|-------------|
-| ▶️ Play / ⏸️ Pause | Start/stop automatic simulation |
-| ⏭️ Step | Execute a single tick |
-| 🔄 Reset | Reset resources to initial values |
-| 🏃 Slider | Simulation speed (0.1x - 5x) |
-| ↩️ Undo | Undo last action (Ctrl+Z) |
-| ↪️ Redo | Redo action (Ctrl+Y) |
-| 📋 Copy | Copy selected node(s) (Ctrl+C) |
-| 📄 Paste | Paste node (Ctrl+V) |
-| 💾 Save | Save project as JSON |
-| 📂 Load | Load JSON project |
-| 📊 CSV | Export simulation statistics |
-| 📋 Templates | Load pre-built scenario |
-| 🔗 Share | Copy shareable link to clipboard |
-| 🧹 Clear | Clear canvas (keeps undo history) |
+|  Play /  Pause | Start/stop automatic simulation |
+|  Step | Execute a single tick |
+| Reset | Reset resources to initial values |
+|  Slider | Simulation speed (0.1x - 5x) |
+|  Undo | Undo last action (Ctrl+Z) |
+|  Redo | Redo action (Ctrl+Y) |
+| Copy | Copy selected node(s) (Ctrl+C) |
+|  Paste | Paste node (Ctrl+V) |
+| Save | Save project as JSON |
+|  Load | Load JSON project |
+|  CSV | Export simulation statistics |
+| Templates | Load pre-built scenario |
+| Share | Copy shareable link to clipboard |
+|  Clear | Clear canvas (keeps undo history) |
 
 ### Node Palette
 
@@ -105,17 +105,17 @@ On touch devices: long-press a node, then drag onto the canvas.
 
 | Icon | Type | Function |
 |------|------|----------|
-| ⬆️ | Source | Produces resources |
-| 🔵 | Pool | Accumulates resources |
-| ⬇️ | Drain | Consumes resources |
-| 🔄 | Converter | Transforms resources |
-| 🚪 | Gate | Controls flow |
+| | Source | Produces resources |
+| | Pool | Accumulates resources |
+| | Drain | Consumes resources |
+| | Converter | Transforms resources |
+| | Gate | Controls flow |
 
 ---
 
-## 🧩 Node Types
+## Node Types
 
-### ⬆️ Source
+### Source
 
 Produces resources automatically each tick or manually on click.
 
@@ -135,8 +135,8 @@ Produces resources automatically each tick or manually on click.
 Note: Manual sources only produce while the simulation is running (Play).
 
 **Distribution Modes:**
-- **💧 Continuous**: Divisible resources (water, gold, energy). 1/tick → 2 outputs = 0.5 each
-- **🔩 Discrete**: Atomic resources (items, cards). 1/tick → 2 outputs = alternating 1,0,1,0...
+- **Continuous**: Divisible resources (water, gold, energy). 1/tick → 2 outputs = 0.5 each
+- **Discrete**: Atomic resources (items, cards). 1/tick → 2 outputs = alternating 1,0,1,0...
 
 **Use cases:**
 - Enemy spawning
@@ -151,7 +151,7 @@ Note: Manual sources only produce while the simulation is running (Play).
 
 ---
 
-### 🔵 Pool
+### Pool
 
 Accumulates resources with optional capacity. Supports **multi-token storage**.
 
@@ -176,7 +176,7 @@ Accumulates resources with optional capacity. Supports **multi-token storage**.
 
 ---
 
-### ⬇️ Drain
+### Drain
 
 Consumes and removes resources from the system.
 
@@ -194,7 +194,7 @@ Consumes and removes resources from the system.
 
 ---
 
-### 🔄 Converter
+### Converter
 
 Transforms input resources into output resources. Supports **multi-token recipes**.
 
@@ -214,8 +214,8 @@ Transforms input resources into output resources. Supports **multi-token recipes
 **Example (Simple):** Input 3, Output 1 → Every 3 incoming resources produce 1 outgoing resource.
 
 **Example (Recipe):** 
-- Input: 2 🟢 Green + 1 🔵 Blue
-- Output: 1 🟠 Orange
+- Input: 2  Green + 1 Blue
+- Output: 1  Orange
 
 **Use cases:**
 - Crafting (3 wood → 1 plank)
@@ -225,7 +225,7 @@ Transforms input resources into output resources. Supports **multi-token recipes
 
 ---
 
-### 🚪 Gate (Conditional)
+### Gate (Conditional)
 
 Transfers resources only when a condition is met.
 
@@ -248,7 +248,7 @@ Transfers resources only when a condition is met.
 
 ---
 
-## 🎮 Token System
+## Token System
 
 Systemica supports **typed resources** (tokens) inspired by Machinations. Instead of generic resources, you can create distinct token types with colors and icons.
 
@@ -256,11 +256,11 @@ Systemica supports **typed resources** (tokens) inspired by Machinations. Instea
 
 | Token | Color | Emoji |
 |-------|-------|-------|
-| Black (default) | #1a1a2e | ⚫ |
-| Blue | #4361ee | 🔵 |
-| Green | #2ec4b6 | 🟢 |
-| Orange | #ff9f1c | 🟠 |
-| Red | #e94560 | 🔴 |
+| Black (default) | #1a1a2e |  |
+| Blue | #4361ee | |
+| Green | #2ec4b6 |  |
+| Orange | #ff9f1c |  |
+| Red | #e94560 |  |
 
 ### Custom Tokens
 
@@ -321,11 +321,11 @@ node.tokenType      // Token type (for sources)
 
 ---
 
-## 🔗 Connections
+## Connections
 
 ### Creating a Connection
 
-1. Click on the **right handle** (●) of the source node
+1. Click on the **right handle** () of the source node
 2. Drag to the **left handle** of the destination node
 3. Release to create the connection
 
@@ -348,7 +348,7 @@ The flow rate is displayed as a label on the connection.
 
 ---
 
-## ⚡ Simulation
+## Simulation
 
 ### Tick
 
@@ -366,21 +366,21 @@ Notes:
 
 | Action | Result |
 |--------|--------|
-| ▶️ Play | Start continuous simulation |
-| ⏸️ Pause | Stop simulation |
-| ⏭️ Step | Execute single tick (useful for debugging) |
-| 🔄 Reset | Reset everything to initial state |
+|  Play | Start continuous simulation |
+|  Pause | Stop simulation |
+|  Step | Execute single tick (useful for debugging) |
+| Reset | Reset everything to initial state |
 
 ### Speed
 
-Use the **🏃 slider** to adjust speed:
+Use the ** slider** to adjust speed:
 - **0.1x**: Very slow (1 tick every 10 seconds)
 - **1x**: Normal (1 tick/second)
 - **5x**: Fast (5 ticks/second)
 
 ---
 
-## ⚙️ Advanced Properties
+## Advanced Properties
 
 ### Probability (All nodes)
 
@@ -392,42 +392,42 @@ Every node has a **Probability** value (0-100%):
 
 ### Custom Formulas (Source)
 
-Source nodes can use formulas instead of a fixed rate. See [Custom Formulas](#-custom-formulas).
+Source nodes can use formulas instead of a fixed rate. See [Custom Formulas](#custom-formulas).
 
 ---
 
-## 📋 Pre-built Templates
+## Pre-built Templates
 
-Click **📋 Templates** to load ready-made scenarios:
+Click **Templates** to load ready-made scenarios:
 
-### 🚀 Starter
+### Starter
 Minimal setup: Source → Pool → Drain.
 
-### 🗡️ Loot System
+### Loot System
 Simulates loot drops from enemies to player inventory.
 
-### ⚡ Energy Regen
+### Energy Regen
 Stamina system with time regeneration and action consumption.
 
-### 🔨 Crafting
+### Crafting
 Material gathering and item crafting system.
 
-### 💰 Economy Loop
+### Economy Loop
 Economic cycle: work → earn → spend → shop.
 
-### 🔮 Mana System
+### Mana System
 Magic system with mana regeneration and spell consumption.
 
 ---
 
-## 📐 Custom Formulas
+## Custom Formulas
 
 For **Source** and **Converter** nodes, you can use formulas instead of fixed rates.
 
 ### Activation
 
 1. Select a Source or Converter node
-2. In the properties panel, click **"📐 Formula"** mode
+2. In the properties panel, click **"Formula"** mode
 3. Enter the formula
 
 ### Available Variables
@@ -474,14 +474,14 @@ pow(1.1, tick)           // Exponential growth
 
 ---
 
-## 📜 Custom Scripts (Advanced)
+## Custom Scripts (Advanced)
 
 For complex logic beyond simple formulas, **Source** and **Converter** nodes support JavaScript scripts executed in a secure sandbox (QuickJS WebAssembly).
 
 ### Activation
 
 1. Select a Source or Converter node
-2. In the properties panel, click the **📜 Script** mode button
+2. In the properties panel, click the **Script** mode button
 3. Enter your JavaScript code
 4. The script must return a number
 
@@ -603,24 +603,24 @@ return 5; // Speed up
 
 ---
 
-## �💾 Save and Export
+## �Save and Export
 
 ### Save Project
 
-1. Click **💾 Save**
+1. Click **Save**
 2. Enter a name
 3. The `.json` file downloads
 
 ### Load Project
 
-1. Click **📂 Load**
+1. Click ** Load**
 2. Select a previously saved `.json` file
 3. The diagram is loaded
 
 ### Export Statistics CSV
 
 1. Run the simulation for some ticks
-2. Click **📊 CSV**
+2. Click ** CSV**
 3. Download a CSV file with resource values for each tick
 
 The CSV contains:
@@ -631,7 +631,7 @@ Useful for analysis in Excel, Google Sheets, etc.
 
 ---
 
-## 🔗 Auto-save and Sharing
+## Auto-save and Sharing
 
 ### Auto-save
 
@@ -646,7 +646,7 @@ Your work is **automatically saved** to browser localStorage:
 Generate a unique URL to share your diagram:
 
 1. Create your diagram
-2. Click **🔗 Share** (top-left corner of canvas)
+2. Click **Share** (top-left corner of canvas)
 3. The link is copied to your clipboard
 4. Send the link to anyone!
 
@@ -655,19 +655,19 @@ Whoever opens the link will see your exact diagram.
 **Technical notes:**
 - The canvas state is compressed (gzip) and encoded in the URL
 - Works best for small to medium diagrams
-- For large projects, use **💾 Save** to download a JSON file
+- For large projects, use **Save** to download a JSON file
 
 ### Validation Buttons
 
 Both **Formula** and **Script** modes include a **✓ Validate** button:
 
 - Click to check syntax before running
-- ✅ Green = valid
-- ❌ Red = error with message
+-  Green = valid
+-  Red = error with message
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+## Keyboard Shortcuts
 
 | Key | Action |
 |-----|--------|
@@ -684,7 +684,7 @@ Selection:
 
 ---
 
-## 🎮 Use Cases
+## Use Cases
 
 ### 1. Economy Balancing
 
@@ -720,7 +720,7 @@ Typical for mobile games:
 
 ---
 
-## 🛠️ Technologies
+## Technologies
 
 | Technology | Use |
 |------------|-----|
@@ -733,7 +733,7 @@ Typical for mobile games:
 
 ---
 
-## 📚 References
+## References
 
 - [Machinations](https://machinations.io/) - Inspiration tool
 - [React Flow](https://reactflow.dev/) - Diagram library

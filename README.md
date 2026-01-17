@@ -1,4 +1,4 @@
-# ⚙️ Systemica
+# Systemica
 
 A visual **game economy simulator** inspired by [Machinations](https://machinations.io/), designed to model and test Producer-Consumer systems in video games.
 
@@ -11,16 +11,16 @@ A visual **game economy simulator** inspired by [Machinations](https://machinati
   <img src="public/logo.svg" alt="Systemica Logo" width="120" />
 </p>
 
-## 🌐 Live Demo
+## Live Demo
 
-**[▶️ Try it now!](https://giocasu.github.io/systemica/)**
+**[Try it now!](https://giocasu.github.io/systemica/)**
 
-## ✨ Features
+## Features
 
 - **Visual Node Editor** - Drag & drop nodes to build economy diagrams
 - **Draggable Panels** - Customize your workspace layout
 - **5 Node Types** - Source, Pool, Drain, Converter, Gate
-- **🎮 Token System** - Typed resources with 5 colors + custom tokens (emoji, name, color)
+- **Token System** - Typed resources with 5 colors + custom tokens (emoji, name, color)
 - **Multi-Token Pools** - Pools accumulate different token types with visual breakdown
 - **Converter Recipes** - Multi-input/output conversion recipes
 - **Real-time Simulation** - Watch resources flow through your system
@@ -40,7 +40,7 @@ A visual **game economy simulator** inspired by [Machinations](https://machinati
 - **Undo/Redo** - Full history support (Ctrl+Z/Y)
 - **Copy/Paste** - Duplicate nodes easily (Ctrl+C/V)
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -70,22 +70,22 @@ npm run build
 npm run preview
 ```
 
-## 🎯 Basic Usage
+## Basic Usage
 
 1. **Add Nodes** - Drag nodes from the left palette onto the canvas
-2. **Connect Nodes** - Click and drag from the right handle (●) to another node's left handle
+2. **Connect Nodes** - Click and drag from the right handle (handle) to another node's left handle
 3. **Configure** - Click a node to edit its properties in the right panel
-4. **Simulate** - Press ▶️ Play to start the simulation
+4. **Simulate** - Press Play to start the simulation
 5. **Analyze** - Watch the real-time chart and export data as CSV
 
-## 📖 Documentation
+## Documentation
 
 For complete documentation, see:
 
-- 📘 **[English Documentation](docs/README.md)**
-- 📗 **[Documentazione Italiana](docs/README_IT.md)**
+- **[English Documentation](docs/README.md)**
+- **[Documentazione Italiana](docs/README_IT.md)**
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Technology | Purpose |
 |------------|---------|
@@ -96,11 +96,11 @@ For complete documentation, see:
 | TypeScript | Type safety |
 | Vite | Build tool |
 
-## 📚 References
+## References
 
 - [Machinations](https://machinations.io/) - Original inspiration
 - [React Flow](https://reactflow.dev/) - Diagram library
 
-## 📄 License
+## License
 
 MIT © 2025-2026
