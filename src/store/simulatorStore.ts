@@ -218,6 +218,13 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   addNode: (type, position) => {
     const id = `node_${nodeIdCounter++}`;
     const defaults = nodeDefaults[type];
+    const initialResources = defaults.resources ?? 0;
+    const tokenType = defaults.tokenType ?? 'black';
+    
+    // Sync typedResources with resources using the default token
+    const initialTypedResources = initialResources > 0 
+      ? { [tokenType]: initialResources }
+      : {};
     
     const newNode: Node<NodeData> = {
       id,
@@ -226,7 +233,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       data: {
         label: `${type.charAt(0).toUpperCase() + type.slice(1)} ${nodeIdCounter - 1}`,
         nodeType: type,
-        resources: defaults.resources ?? 0,
+        resources: initialResources,
         capacity: defaults.capacity ?? -1,
         productionRate: defaults.productionRate ?? 0,
         consumptionRate: defaults.consumptionRate ?? 0,
@@ -252,8 +259,8 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         lastConverted: defaults.lastConverted ?? 0,
         lastSent: defaults.lastSent ?? 0,
         // Token system
-        tokenType: defaults.tokenType ?? 'black',
-        typedResources: defaults.typedResources ?? {},
+        tokenType: tokenType,
+        typedResources: initialTypedResources,
         recipe: defaults.recipe,
       },
     };
@@ -739,13 +746,12 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       };
 
       if (distributionMode === 'continuous') {
-        const totalFlowRates = validEdges.reduce((sum, e) => sum + e.flowRate, 0);
-        const totalAvailable = available;
-
+        // Continuous mode: fill each connection up to its flowRate, in order
+        // First connection gets up to flowRate, then second, etc.
+        // This respects flowRate as a "max capacity per tick" for each connection
         for (const { target, flowRate } of validEdges) {
-          const proportion = flowRate / totalFlowRates;
-          const allocated = totalAvailable * proportion;
-          const actualFlow = Math.min(allocated, flowRate, getTargetSpace(target), available);
+          if (available <= 0) break;
+          const actualFlow = Math.min(flowRate, getTargetSpace(target), available);
           if (actualFlow > 0) {
             transferTyped(target, actualFlow);
           }

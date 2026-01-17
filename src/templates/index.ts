@@ -16,33 +16,47 @@ const createNodeData = (
   label: string,
   nodeType: NodeData['nodeType'],
   overrides: Partial<NodeData> = {}
-): NodeData => ({
-  label,
-  nodeType,
-  resources: 0,
-  capacity: -1,
-  productionRate: 0,
-  consumptionRate: 0,
-  isActive: true,
-  inputRatio: 1,
-  outputRatio: 1,
-  probability: 100,
-  gateCondition: 'always',
-  gateThreshold: 0,
-  formula: '',
-  useFormula: false,
-  processingMode: 'fixed',
-  script: '',
-  scriptState: {},
-  distributionMode: 'continuous',
-  lastDistributionIndex: 0,
-  maxProduction: -1,
-  totalProduced: 0,
-  // Token system
-  tokenType: 'black',
-  typedResources: {},
-  ...overrides,
-});
+): NodeData => {
+  const tokenType = overrides.tokenType ?? 'black';
+  const resources = overrides.resources ?? 0;
+  
+  // Sync typedResources with resources using the token type
+  const typedResources = resources > 0 
+    ? { [tokenType]: resources, ...(overrides.typedResources ?? {}) }
+    : (overrides.typedResources ?? {});
+  
+  return {
+    label,
+    nodeType,
+    resources,
+    capacity: -1,
+    productionRate: 0,
+    consumptionRate: 0,
+    isActive: true,
+    inputRatio: 1,
+    outputRatio: 1,
+    probability: 100,
+    gateCondition: 'always',
+    gateThreshold: 0,
+    formula: '',
+    useFormula: false,
+    processingMode: 'fixed',
+    script: '',
+    scriptState: {},
+    distributionMode: 'continuous',
+    lastDistributionIndex: 0,
+    maxProduction: -1,
+    totalProduced: 0,
+    // Token system
+    tokenType,
+    typedResources,
+    ...overrides,
+    // Ensure typedResources is always synced after overrides
+    ...(overrides.resources !== undefined && !overrides.typedResources ? {
+      typedResources: { [overrides.tokenType ?? 'black']: overrides.resources }
+    } : {}),
+  };
+};
 
 // Helper to create edge
 const createEdge = (

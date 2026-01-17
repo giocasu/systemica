@@ -6,6 +6,7 @@ import { validateScript } from '../utils/scriptRunner';
 import { TokenSelector } from './TokenSelector';
 import { TokenEditorModal } from './TokenEditorModal';
 import { RecipeEditor } from './RecipeEditor';
+import { ScriptEditorModal } from './ScriptEditorModal';
 
 interface PropertiesPanelProps {
   nodeId: string;
@@ -22,6 +23,7 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
   const [capacityDraft, setCapacityDraft] = useState<string | null>(null);
   const [maxProductionDraft, setMaxProductionDraft] = useState<string | null>(null);
   const [showTokenEditor, setShowTokenEditor] = useState(false);
+  const [showScriptEditor, setShowScriptEditor] = useState(false);
 
   useEffect(() => {
     setCapacityDraft(null);
@@ -41,6 +43,15 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
   const supportsProcessingModes = data.nodeType === 'source' || data.nodeType === 'converter';
 
   const handleChange = (field: keyof NodeData, value: unknown) => {
+    // When resources change, sync typedResources with default token
+    if (field === 'resources' && typeof value === 'number') {
+      const tokenType = data.tokenType || 'black';
+      updateNodeData(nodeId, { 
+        resources: value,
+        typedResources: { [tokenType]: value }
+      });
+      return;
+    }
     updateNodeData(nodeId, { [field]: value });
   };
   
@@ -332,7 +343,16 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
       {/* Script Mode: Show script editor */}
       {supportsProcessingModes && currentMode === 'script' && (
         <div className="property-group script-section">
-          <label>Script (JavaScript)</label>
+          <label>
+            Script (JavaScript)
+            <button 
+              className="expand-btn"
+              onClick={() => setShowScriptEditor(true)}
+              title="Open in full editor"
+            >
+              ⛶ Expand
+            </button>
+          </label>
           <textarea
             value={data.script ?? ''}
             placeholder={`// Return a number\n${data.nodeType === 'converter' ? 'return floor(input * 0.5);' : 'return resources * 0.1;'}`}
@@ -382,6 +402,8 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
                   <li><code>capacity</code> - Node capacity (Infinity if unlimited)</li>
                   <li><code>capacityRaw</code> - Raw capacity (-1 if unlimited)</li>
                   <li><code>tick</code> - Current simulation tick</li>
+                  <li><code>tokenType</code> - Token type ID (e.g., "gold", "blue")</li>
+                  <li><code>tokens</code> - Typed resources object (e.g., {'{'}gold: 10, blue: 5{'}'})</li>
                   {data.nodeType === 'source' && (
                     <>
                       <li><code>buffer</code> - Alias for <code>resources</code></li>
@@ -395,7 +417,8 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
                 </ul>
                 <strong>Functions:</strong>
                 <ul>
-                  <li><code>getNode(id)</code> - Get another node's data</li>
+                  <li><code>getNode(id)</code> - Get another node's data: {'{'} resources, capacity, tokens, tokenType {'}'}</li>
+                  <li><code>get(nodeId, tokenId)</code> - Get specific token amount from a node</li>
                   <li><code>min, max, floor, ceil, round, abs, sqrt, pow</code></li>
                   <li><code>sin, cos, tan, log, exp, random</code></li>
                   <li><code>PI</code>, <code>E</code></li>
@@ -490,6 +513,21 @@ return floor(input + bonus);`}</pre>
         isOpen={showTokenEditor}
         onClose={() => setShowTokenEditor(false)}
       />
+      
+      {/* Script Editor Modal */}
+      {supportsProcessingModes && (
+        <ScriptEditorModal
+          isOpen={showScriptEditor}
+          onClose={() => setShowScriptEditor(false)}
+          value={data.script ?? ''}
+          onChange={(value) => {
+            handleChange('script', value);
+            setScriptError(null);
+            setScriptValid(false);
+          }}
+          nodeType={data.nodeType as 'source' | 'converter'}
+        />
+      )}
     </div>
   );
 }

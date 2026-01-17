@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTokenStore } from '../store/tokenStore';
 
 interface TokenEditorModalProps {
@@ -116,7 +117,7 @@ export function TokenEditorModal({ isOpen, onClose, editTokenId }: TokenEditorMo
     }
   };
   
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={handleBackdropClick}>
       <div className="modal token-editor-modal">
         <div className="modal-header">
@@ -228,6 +229,7 @@ export function TokenEditorModal({ isOpen, onClose, editTokenId }: TokenEditorMo
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
