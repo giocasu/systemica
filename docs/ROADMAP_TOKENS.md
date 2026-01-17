@@ -1,10 +1,12 @@
-# 🎯 Roadmap: Sistema Token Tipizzati per Systemica
+# Roadmap: Sistema Token Tipizzati per Systemica
 
-**Ultimo aggiornamento**: 16 Gennaio 2026
+**Ultimo aggiornamento**: 17 Gennaio 2026
 
 > ✅ **IMPLEMENTAZIONE COMPLETATA** - Tutte le fasi sono state implementate con successo.
+> 
+> **v0.12.1 Fix**: Risolti bug critici di sincronizzazione typedResources e distribuzione continua.
 
-## 📋 Overview
+## Overview
 
 Implementazione di un sistema di risorse tipizzate ispirato a Machinations, con:
 - **5 colori predefiniti**: Black (default), Blue, Green, Orange, Red
@@ -14,7 +16,7 @@ Implementazione di un sistema di risorse tipizzate ispirato a Machinations, con:
 
 ---
 
-## 🏗️ Fase 1: Fondamenta (Token Registry)
+## Fase 1: Fondamenta (Token Registry)
 
 | Task | Descrizione | Stato |
 |------|-------------|-------|
@@ -72,7 +74,7 @@ export const PREDEFINED_TOKENS: TokenDefinition[] = [
 
 ---
 
-## 🏗️ Fase 2: Estensione NodeData
+## Fase 2: Estensione NodeData
 
 | Task | Descrizione | Stato |
 |------|-------------|-------|
@@ -117,7 +119,7 @@ function migrateNodeData(node: Node<NodeData>): Node<NodeData> {
 
 ---
 
-## 🏗️ Fase 3: UI Components
+## Fase 3: UI Components
 
 | Task | Descrizione | Stato |
 |------|-------------|-------|
@@ -207,7 +209,7 @@ function migrateNodeData(node: Node<NodeData>): Node<NodeData> {
 
 ---
 
-## 🏗️ Fase 4: Logica Simulazione
+## Fase 4: Logica Simulazione
 
 | Task | Descrizione | Stato |
 |------|-------------|-------|
@@ -239,7 +241,7 @@ interface EdgeData {
 
 ---
 
-## 🏗️ Fase 5: Script Context Esteso
+## Fase 5: Script Context Esteso
 
 | Task | Descrizione | Stato |
 |------|-------------|-------|
@@ -293,7 +295,7 @@ return gold > 50;
 
 ---
 
-## 🏗️ Fase 6: Visualizzazione
+## Fase 6: Visualizzazione
 
 | Task | Descrizione | Stato |
 |------|-------------|-------|
@@ -362,7 +364,7 @@ return gold > 50;
 
 ---
 
-## 🏗️ Fase 7: Performance Optimization
+## Fase 7: Performance Optimization
 
 | Task | Descrizione | Stato |
 |------|-------------|-------|
@@ -405,7 +407,7 @@ return gold > 50;
 
 ---
 
-## 📋 Legenda
+## Legenda
 
 - ✅ Completato
 - 🔄 In corso

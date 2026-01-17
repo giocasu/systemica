@@ -1,8 +1,8 @@
 # Roadmap - Systemica
 
-Ultimo aggiornamento: 16 Gennaio 2026
+Ultimo aggiornamento: 17 Gennaio 2026
 
-## 🔴 Priorità Alta (Core Features)
+## Priorità Alta (Core Features)
 
 | Feature | Descrizione | Stato |
 |---------|-------------|-------|
@@ -11,7 +11,7 @@ Ultimo aggiornamento: 16 Gennaio 2026
 | **Delete con tastiera** | Backspace/Delete per rimuovere nodi/edges | ✅ Completato |
 | **Converter funzionante** | Logica di conversione input→output | ✅ Completato |
 
-## 🟡 Priorità Media (Usabilità)
+## Priorità Media (Usabilità)
 
 | Feature | Descrizione | Stato |
 |---------|-------------|-------|
@@ -21,7 +21,7 @@ Ultimo aggiornamento: 16 Gennaio 2026
 | **Scenari predefiniti** | Esempi: loot system, energy system | ✅ Completato |
 | **Velocità simulazione** | Slider per tick/secondo | ✅ Completato |
 
-## 🟢 Priorità Bassa (Nice to have)
+## Priorità Bassa (Nice to have)
 
 | Feature | Descrizione | Stato |
 |---------|-------------|-------|
@@ -32,39 +32,49 @@ Ultimo aggiornamento: 16 Gennaio 2026
 | **Export statistiche** | CSV/report della simulazione | ✅ Completato |
 | **Formule custom** | Espressioni per production rate | ✅ Completato |
 
-## 📋 Legenda
+## Legenda
 
 - ✅ Completato
-- 🔄 In corso
+- In corso
 - ❌ Da fare
 
 ---
 
-## 🚀 Future Features
+## Future Features
 
 ### UI Enhancements
 - ✅ **NodeToolbar**: Quick actions (delete, duplicate, lock) on selected nodes using ReactFlow's NodeToolbar component
   - Reference: https://reactflow.dev/examples/nodes/node-toolbar
 - ✅ **Fully Draggable Panels**: Make all panels (palette, properties, charts) freely draggable and resizable
-- 📱 **Responsive Layout**: Better support for smaller screens and mobile devices
+- **Responsive Layout**: Better support for smaller screens and mobile devices
 
 ### Architecture
 - ✅ **Token System**: Multi-token resources with typed resources (see ROADMAP_TOKENS.md)
 - ✅ **Batch Script Execution**: Optimized script runner with ~5x performance improvement
-- 🏗️ **"Everything is a Script" (Hybrid)**: Allow any node property to be either a simple value OR a JavaScript formula/script
+- **"Everything is a Script" (Hybrid)**: Allow any node property to be either a simple value OR a JavaScript formula/script
   - Maintain backward compatibility with simple values
   - Scripts have access to full context (neighbors, global state, time)
   - Progressive complexity: users can start simple and add scripts when needed
 
 ### Simulation
-- 📊 **Advanced Analytics**: More chart types, statistics, and export options
-- 🔄 **Batch Simulation**: Run multiple simulations with varying parameters
-- 📈 **Monte Carlo Mode**: Statistical analysis across many runs
+- **Advanced Analytics**: More chart types, statistics, and export options
+- **Batch Simulation**: Run multiple simulations with varying parameters
+- **Monte Carlo Mode**: Statistical analysis across many runs
 
 ---
 
-## 📝 Note di Sviluppo
-
+## Note di Sviluppo
+### v0.12.1 (17/01/2026)
+- ✅ **Fix TypedResources Sync**: Sincronizzazione automatica tra `resources` e `typedResources`
+  - Fix in PropertiesPanel, addNode, e createNodeData
+  - Risolto bug dove Pool→Drain non trasferiva risorse
+- ✅ **Fix Continuous Distribution**: Modalità continua ora riempie connessioni in sequenza
+  - Prima connessione riceve fino a flowRate, poi la successiva
+  - Comportamento più intuitivo rispetto alla distribuzione proporzionale
+- ✅ **Fix Modal Overflow**: Modali Token Editor e Script Editor usano createPortal
+  - Risolto problema position:fixed dentro DraggablePanel
+- ✅ **API Reference Alignment**: Documentazione API consistente tra pannelli
+- ✅ **Docs Cleanup**: Rimosse emoji dai file README per compatibilità
 ### v0.12.0 (16/01/2026)
 - ✅ **Token System**: Sistema risorse tipizzate ispirato a Machinations
   - 5 colori predefiniti: Black, Blue, Green, Orange, Red
