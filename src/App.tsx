@@ -12,6 +12,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { useSimulatorStore } from './store/simulatorStore';
+import { useThemeStore } from './store/themeStore';
 import { nodeTypes } from './nodes';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { EdgePropertiesPanel } from './components/EdgePropertiesPanel';
@@ -20,6 +21,7 @@ import { ResourceChart } from './components/ResourceChart';
 import { NodePalette } from './components/NodePalette';
 import { DraggableToolbar } from './components/DraggableToolbar';
 import { DraggablePanel } from './components/DraggablePanel';
+import ThemeSelector from './components/ThemeSelector';
 import { NodeType } from './types';
 import { 
   saveToLocalStorage, 
@@ -191,19 +193,30 @@ function Flow() {
     return () => clearInterval(interval);
   }, [isRunning, tick, ticksPerSecond]);
 
+  // Get current theme
+  const theme = useThemeStore((state) => state.theme);
+
   return (
-    <div className="app">
+    <div className="app" data-theme={theme}>
       <DraggableToolbar
         onToggleChart={() => setShowChart((prev) => !prev)}
         showChart={showChart}
       />
       <DraggablePanel
-        title="🧩 Nodes"
+        title="Nodes"
         defaultPosition={{ x: 10, y: 120 }}
         className="palette-draggable"
         minWidth={260}
       >
         <NodePalette flowWrapperRef={reactFlowWrapper} />
+      </DraggablePanel>
+      <DraggablePanel
+        title="Theme"
+        defaultPosition={{ x: 10, y: 460 }}
+        className="theme-draggable"
+        minWidth={200}
+      >
+        <ThemeSelector />
       </DraggablePanel>
       <div className="flow-wrapper" ref={reactFlowWrapper}>
         <ReactFlow

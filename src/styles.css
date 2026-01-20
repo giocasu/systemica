@@ -1,3 +1,403 @@
+/* ============================================================================
+   THEME SYSTEM - CSS Variables
+   ============================================================================ */
+
+:root {
+  /* Default theme variables */
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-tertiary: #0f3460;
+  --text-primary: #eee;
+  --text-secondary: #aaa;
+  --accent: #e94560;
+  --accent-hover: #ff6b6b;
+  
+  /* Node shape variables */
+  --node-border-radius: 8px;
+  --node-border-width: 2px;
+  --node-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --node-padding: 12px 16px;
+  --node-min-width: 100px;
+  
+  /* Font */
+  --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', monospace;
+}
+
+/* ============================================================================
+   BLUEPRINT THEME - Technical wireframe style
+   ============================================================================ */
+
+[data-theme="blueprint"] {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #21262d;
+  --text-primary: #58a6ff;
+  --text-secondary: #8b949e;
+  --accent: #00d9ff;
+  --accent-hover: #39ff14;
+  
+  --node-border-radius: 0px;
+  --node-border-width: 1px;
+  --node-shadow: none;
+  --node-padding: 10px 14px;
+  
+  --font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+[data-theme="blueprint"] body,
+[data-theme="blueprint"] .flow-wrapper {
+  background: var(--bg-primary);
+  background-image: 
+    linear-gradient(rgba(0, 217, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 217, 255, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+[data-theme="blueprint"] .custom-node {
+  background: transparent !important;
+  border: var(--node-border-width) solid var(--accent) !important;
+  border-radius: var(--node-border-radius) !important;
+  box-shadow: var(--node-shadow) !important;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+[data-theme="blueprint"] .custom-node .node-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.7;
+}
+
+[data-theme="blueprint"] .custom-node .node-value {
+  font-size: 1.4rem;
+  font-weight: 400;
+  color: var(--accent);
+}
+
+/* Blueprint: Source = Triangle pointing up */
+[data-theme="blueprint"] .node-source {
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  padding-top: 20px;
+  min-height: 80px;
+  border: none !important;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 217, 255, 0.1) 100%) !important;
+  border-bottom: 2px solid var(--accent) !important;
+}
+
+/* Blueprint: Pool = Circle */
+[data-theme="blueprint"] .node-pool {
+  border-radius: 50% !important;
+  min-width: 90px;
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Blueprint: Drain = Triangle pointing down */
+[data-theme="blueprint"] .node-drain {
+  clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+  padding-bottom: 20px;
+  min-height: 80px;
+  border: none !important;
+  background: linear-gradient(0deg, transparent 0%, rgba(255, 71, 87, 0.1) 100%) !important;
+  border-top: 2px solid #ff4757 !important;
+}
+
+/* Blueprint: Converter = Diamond */
+[data-theme="blueprint"] .node-converter {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  min-width: 100px;
+  min-height: 100px;
+  padding: 25px 15px;
+  background: rgba(255, 193, 7, 0.1) !important;
+  border: none !important;
+}
+
+/* Blueprint: Gate = Hexagon */
+[data-theme="blueprint"] .node-gate {
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  min-width: 100px;
+  min-height: 80px;
+  padding: 15px;
+  background: rgba(138, 43, 226, 0.1) !important;
+}
+
+/* Blueprint: Trader = Bowtie */
+[data-theme="blueprint"] .node-trader {
+  clip-path: polygon(0% 0%, 40% 50%, 0% 100%, 100% 100%, 60% 50%, 100% 0%);
+  min-width: 120px;
+  min-height: 70px;
+  padding: 15px 30px;
+  background: rgba(236, 72, 153, 0.1) !important;
+}
+
+/* Blueprint: Edge styling */
+[data-theme="blueprint"] .react-flow__edge-path {
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 5 3;
+}
+
+[data-theme="blueprint"] .react-flow__handle {
+  background: var(--bg-primary);
+  border: 2px solid var(--accent);
+  width: 10px;
+  height: 10px;
+}
+
+/* Blueprint: Active states */
+[data-theme="blueprint"] .source-active,
+[data-theme="blueprint"] .pool-active,
+[data-theme="blueprint"] .converter-active,
+[data-theme="blueprint"] .drain-active,
+[data-theme="blueprint"] .trader-active {
+  filter: drop-shadow(0 0 8px var(--accent));
+}
+
+/* ============================================================================
+   SOFT MINIMAL THEME - Clean geometric with warm tones
+   ============================================================================ */
+
+[data-theme="soft-minimal"] {
+  --bg-primary: #1c1917;
+  --bg-secondary: #292524;
+  --bg-tertiary: #44403c;
+  --text-primary: #fafaf9;
+  --text-secondary: #a8a29e;
+  --accent: #f97316;
+  --accent-hover: #fb923c;
+  
+  --node-border-radius: 12px;
+  --node-border-width: 1px;
+  --node-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --node-padding: 16px 20px;
+  
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+[data-theme="soft-minimal"] body,
+[data-theme="soft-minimal"] .flow-wrapper {
+  background: var(--bg-primary);
+}
+
+[data-theme="soft-minimal"] .custom-node {
+  background: var(--bg-secondary) !important;
+  border: var(--node-border-width) solid var(--bg-tertiary) !important;
+  border-radius: var(--node-border-radius) !important;
+  box-shadow: var(--node-shadow) !important;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+}
+
+[data-theme="soft-minimal"] .custom-node:hover {
+  border-color: var(--accent) !important;
+  transform: translateY(-2px);
+}
+
+[data-theme="soft-minimal"] .custom-node .node-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+[data-theme="soft-minimal"] .custom-node .node-value {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+[data-theme="soft-minimal"] .custom-node .node-rate {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+/* Soft Minimal: Source = Rounded square with arrow indicator */
+[data-theme="soft-minimal"] .node-source {
+  border-radius: 16px !important;
+  border-left: 4px solid #22c55e !important;
+}
+
+[data-theme="soft-minimal"] .node-source .token-badge {
+  top: -8px;
+  right: -8px;
+}
+
+/* Soft Minimal: Pool = Circle */
+[data-theme="soft-minimal"] .node-pool {
+  border-radius: 50% !important;
+  min-width: 100px;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid #3b82f6 !important;
+}
+
+/* Soft Minimal: Drain = Rounded with bottom accent */
+[data-theme="soft-minimal"] .node-drain {
+  border-radius: 16px !important;
+  border-bottom: 4px solid #ef4444 !important;
+}
+
+/* Soft Minimal: Converter = Diamond shape */
+[data-theme="soft-minimal"] .node-converter {
+  border-radius: 4px !important;
+  transform: rotate(0deg);
+  border: 2px solid #eab308 !important;
+  position: relative;
+}
+
+[data-theme="soft-minimal"] .node-converter::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  background: var(--bg-secondary);
+  border: 2px solid #eab308;
+  border-radius: 2px;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+/* Soft Minimal: Gate = Pill shape */
+[data-theme="soft-minimal"] .node-gate {
+  border-radius: 999px !important;
+  min-width: 120px;
+  border: 2px solid #a855f7 !important;
+}
+
+/* Soft Minimal: Trader = Double circle */
+[data-theme="soft-minimal"] .node-trader {
+  border-radius: 20px !important;
+  border: 2px solid #ec4899 !important;
+  position: relative;
+}
+
+[data-theme="soft-minimal"] .node-trader::before,
+[data-theme="soft-minimal"] .node-trader::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #ec4899;
+  border-radius: 50%;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+[data-theme="soft-minimal"] .node-trader::before {
+  left: -4px;
+}
+
+[data-theme="soft-minimal"] .node-trader::after {
+  right: -4px;
+}
+
+/* Soft Minimal: Handles */
+[data-theme="soft-minimal"] .react-flow__handle {
+  background: var(--bg-secondary);
+  border: 2px solid var(--accent);
+  width: 12px;
+  height: 12px;
+  transition: all 0.2s ease;
+}
+
+[data-theme="soft-minimal"] .react-flow__handle:hover {
+  transform: scale(1.3);
+  background: var(--accent);
+}
+
+/* Soft Minimal: Edges */
+[data-theme="soft-minimal"] .react-flow__edge-path {
+  stroke: var(--text-secondary);
+  stroke-width: 2;
+}
+
+/* Soft Minimal: Active states */
+[data-theme="soft-minimal"] .source-active {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.4), var(--node-shadow) !important;
+}
+
+[data-theme="soft-minimal"] .pool-active {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), var(--node-shadow) !important;
+}
+
+[data-theme="soft-minimal"] .converter-active {
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.4), var(--node-shadow) !important;
+}
+
+[data-theme="soft-minimal"] .drain-active {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), var(--node-shadow) !important;
+}
+
+[data-theme="soft-minimal"] .trader-active {
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.4), var(--node-shadow) !important;
+}
+
+/* ============================================================================
+   SHARED THEME STYLES
+   ============================================================================ */
+
+[data-theme="blueprint"] .toolbar,
+[data-theme="soft-minimal"] .toolbar {
+  background: var(--bg-secondary);
+  border-color: var(--bg-tertiary);
+}
+
+[data-theme="blueprint"] .controls button,
+[data-theme="soft-minimal"] .controls button {
+  background: var(--bg-tertiary);
+  border-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+[data-theme="blueprint"] .controls button:hover,
+[data-theme="soft-minimal"] .controls button:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+[data-theme="blueprint"] .draggable-panel,
+[data-theme="soft-minimal"] .draggable-panel {
+  background: var(--bg-secondary);
+  border-color: var(--bg-tertiary);
+}
+
+[data-theme="blueprint"] .status-bar,
+[data-theme="soft-minimal"] .status-bar {
+  background: var(--bg-secondary);
+  border-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+[data-theme="blueprint"] .node-palette-content,
+[data-theme="soft-minimal"] .node-palette-content {
+  background: var(--bg-secondary);
+}
+
+[data-theme="blueprint"] .palette-item-vertical,
+[data-theme="soft-minimal"] .palette-item-vertical {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+[data-theme="blueprint"] .palette-item-vertical:hover,
+[data-theme="soft-minimal"] .palette-item-vertical:hover {
+  background: var(--accent);
+}
+
+/* ============================================================================
+   ORIGINAL STYLES (below)
+   ============================================================================ */
+
 * {
   margin: 0;
   padding: 0;
@@ -5,9 +405,9 @@
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #1a1a2e;
-  color: #eee;
+  font-family: var(--font-family);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   overflow: hidden;
 }
 
@@ -19,7 +419,7 @@ body {
 
 .flow-wrapper {
   flex: 1;
-  background: #1a1a2e;
+  background: var(--bg-primary);
   position: relative;
   overflow: hidden;
   touch-action: none;
@@ -757,6 +1157,98 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 4px;
   font-size: 0.8rem;
+}
+
+/* ============================================================================
+   THEME SELECTOR COMPONENT
+   ============================================================================ */
+
+.theme-selector {
+  padding: 8px;
+}
+
+.theme-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.theme-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.theme-btn:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent);
+}
+
+.theme-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.theme-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.theme-icon-default {
+  background: linear-gradient(135deg, #1a1a2e 0%, #e94560 100%);
+  border: 2px solid #e94560;
+}
+
+.theme-icon-blueprint {
+  background: #0d1117;
+  border: 2px solid #00d9ff;
+  position: relative;
+}
+
+.theme-icon-blueprint::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border: 1px solid #00d9ff;
+}
+
+.theme-icon-soft-minimal {
+  background: linear-gradient(135deg, #292524 0%, #f97316 100%);
+  border-radius: 50%;
+  border: 2px solid #f97316;
+}
+
+.theme-name {
+  font-weight: 500;
+}
+
+.theme-draggable {
+  z-index: 100;
 }
 
 /* Custom Node Styles */
