@@ -1013,6 +1013,48 @@ body {
   color: #fff;
 }
 
+/* Trader node */
+.node-trader {
+  background: linear-gradient(135deg, #f472b6, #ec4899);
+  color: #fff;
+  min-height: 90px;
+}
+
+.node-trader .trader-icon {
+  font-size: 1.4rem;
+  margin: 4px 0;
+}
+
+.node-trader .trader-buffers {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+
+.node-trader .trader-buffer-a {
+  background: rgba(59, 130, 246, 0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.node-trader .trader-buffer-b {
+  background: rgba(249, 115, 22, 0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.node-trader .trader-separator {
+  opacity: 0.7;
+  font-size: 0.85rem;
+}
+
+.node-trader.trader-active {
+  box-shadow: 0 0 15px rgba(244, 114, 182, 0.6);
+}
+
 /* React Flow handle styles */
 .react-flow__handle {
   width: 12px;

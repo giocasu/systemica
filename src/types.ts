@@ -1,5 +1,5 @@
 // Node types
-export type NodeType = 'source' | 'pool' | 'drain' | 'converter' | 'gate';
+export type NodeType = 'source' | 'pool' | 'drain' | 'converter' | 'gate' | 'trader';
 
 // Processing mode: fixed rate, formula expression, or full script
 export type ProcessingMode = 'fixed' | 'formula' | 'script';
@@ -119,6 +119,19 @@ export interface NodeData extends Record<string, unknown> {
   // Converter: recipe for multi-token conversion
   // Example: 2 iron + 3 wood → 1 sword
   recipe?: ConverterRecipe;
+  
+  // ============================================================================
+  // TRADER - Cross-exchange node
+  // ============================================================================
+  
+  // Trader: accumulated resources from input A (top handle)
+  traderInputA?: number;
+  // Trader: accumulated resources from input B (bottom handle)
+  traderInputB?: number;
+  // Trader: typed resources from input A
+  traderTypedA?: TypedResources;
+  // Trader: typed resources from input B  
+  traderTypedB?: TypedResources;
 }
 
 // Default values for each node type
@@ -246,6 +259,34 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     tokenType: 'black',
     typedResources: {},
   },
+  trader: {
+    resources: 0,
+    capacity: -1,
+    productionRate: 0,
+    consumptionRate: 0,
+    isActive: true,
+    inputRatio: 1,
+    outputRatio: 1,
+    probability: 100,
+    gateCondition: 'always',
+    gateThreshold: 0,
+    processingMode: 'fixed',
+    formula: '',
+    useFormula: false,
+    script: '',
+    scriptState: {},
+    distributionMode: 'continuous',
+    lastDistributionIndex: 0,
+    maxProduction: -1,
+    totalProduced: 0,
+    lastSent: 0,
+    // Token system
+    tokenType: 'black',
+    typedResources: {},
+    // Trader specific: accumulated resources from each input handle
+    traderInputA: 0,
+    traderInputB: 0,
+  },
 };
 
 // Node visual config
@@ -255,4 +296,5 @@ export const nodeConfig: Record<NodeType, { icon: string; label: string }> = {
   drain: { icon: '⬇️', label: 'Drain' },
   converter: { icon: '🔄', label: 'Converter' },
   gate: { icon: '🚪', label: 'Gate' },
+  trader: { icon: '⇄', label: 'Trader' },
 };

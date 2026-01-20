@@ -248,6 +248,59 @@ export const GateNode = memo(({ data, selected }: CustomNodeProps) => {
   );
 });
 
+// Trader Node - exchanges resources between two inputs/outputs
+// Input A (top-left) → Output B (bottom-right)
+// Input B (bottom-left) → Output A (top-right)
+export const TraderNode = memo(({ data, selected }: CustomNodeProps) => {
+  const inputA = data.traderInputA ?? 0;
+  const inputB = data.traderInputB ?? 0;
+  const lastSent = typeof data.lastSent === 'number' ? data.lastSent : 0;
+  const activeClass = lastSent > 0 ? 'trader-active' : '';
+  
+  return (
+    <div className={`custom-node node-trader ${activeClass} ${selected ? 'selected' : ''}`}>
+      {/* Two input handles on the left */}
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="input-a"
+        style={{ top: '30%' }}
+      />
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="input-b"
+        style={{ top: '70%' }}
+      />
+      
+      <div className="node-label">{data.label}</div>
+      <div className="trader-icon">⇄</div>
+      <div className="trader-buffers">
+        <span className="trader-buffer-a" title="Input A buffer">{formatResources(inputA)}</span>
+        <span className="trader-separator">↔</span>
+        <span className="trader-buffer-b" title="Input B buffer">{formatResources(inputB)}</span>
+      </div>
+      {lastSent > 0 && (
+        <div className="node-rate">exchanged {formatResources(lastSent)}/tick</div>
+      )}
+      
+      {/* Two output handles on the right - crossed */}
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        id="output-a"
+        style={{ top: '30%' }}
+      />
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        id="output-b"
+        style={{ top: '70%' }}
+      />
+    </div>
+  );
+});
+
 // Export all node types for React Flow
 export const nodeTypes = {
   source: SourceNode,
@@ -255,4 +308,5 @@ export const nodeTypes = {
   drain: DrainNode,
   converter: ConverterNode,
   gate: GateNode,
+  trader: TraderNode,
 };

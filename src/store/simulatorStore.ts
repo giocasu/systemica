@@ -638,7 +638,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       const source = nodeMap.get(sourceId);
       if (!source || !source.data.isActive) continue;
 
-      if (source.data.nodeType === 'converter' || source.data.nodeType === 'drain') continue;
+      if (source.data.nodeType === 'converter' || source.data.nodeType === 'drain' || source.data.nodeType === 'trader') continue;
 
       const isSourceNode = source.data.nodeType === 'source';
 
@@ -980,6 +980,123 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       converterConsumed.set(node.id, scaledConsumed);
     }
 
+    // Phase 4: Traders exchange resources between two inputs and two outputs
+    // Input A (top) → Output B (bottom) - cross exchange
+    // Input B (bottom) → Output A (top) - cross exchange
+    const traderConsumedA = new Map<string, TypedResources>();
+    const traderConsumedB = new Map<string, TypedResources>();
+    
+    for (const node of nodeMap.values()) {
+      if (node.data.nodeType !== 'trader' || !node.data.isActive) continue;
+
+      const prob = node.data.probability ?? 100;
+      if (!checkProbability(prob)) continue;
+
+      // Find incoming edges by target handle
+      const incomingEdges = edges.filter(e => e.target === node.id);
+      const edgesToInputA = incomingEdges.filter(e => e.targetHandle === 'input-a');
+      const edgesToInputB = incomingEdges.filter(e => e.targetHandle === 'input-b');
+      
+      // Find outgoing edges by source handle
+      const outgoingEdges = edgesBySource.get(node.id) ?? [];
+      const edgesFromOutputA = outgoingEdges.filter(e => e.sourceHandle === 'output-a');
+      const edgesFromOutputB = outgoingEdges.filter(e => e.sourceHandle === 'output-b');
+      
+      // Calculate incoming resources from each input
+      // (These come from snapshot, but we need to track what was sent TO the trader)
+      let inputATyped: TypedResources = {};
+      let inputBTyped: TypedResources = {};
+      
+      // Check what's being sent to this trader from other nodes
+      for (const edge of edgesToInputA) {
+        const sourceNode = nodeMap.get(edge.source);
+        if (!sourceNode || !sourceNode.data.isActive) continue;
+        
+        const flowRate = (edge.data as { flowRate?: number })?.flowRate ?? 1;
+        const sourceTyped = baseTypedResources.get(edge.source) ?? {};
+        
+        // Get available from source
+        for (const [tokenId, amount] of Object.entries(sourceTyped)) {
+          const toSend = Math.min(amount, flowRate);
+          if (toSend > 0) {
+            inputATyped[tokenId] = (inputATyped[tokenId] ?? 0) + toSend;
+          }
+        }
+      }
+      
+      for (const edge of edgesToInputB) {
+        const sourceNode = nodeMap.get(edge.source);
+        if (!sourceNode || !sourceNode.data.isActive) continue;
+        
+        const flowRate = (edge.data as { flowRate?: number })?.flowRate ?? 1;
+        const sourceTyped = baseTypedResources.get(edge.source) ?? {};
+        
+        for (const [tokenId, amount] of Object.entries(sourceTyped)) {
+          const toSend = Math.min(amount, flowRate);
+          if (toSend > 0) {
+            inputBTyped[tokenId] = (inputBTyped[tokenId] ?? 0) + toSend;
+          }
+        }
+      }
+      
+      // Cross exchange: Input A → Output B, Input B → Output A
+      // Output A sends what came from Input B
+      // Output B sends what came from Input A
+      
+      // Helper to send to targets
+      const sendToTargets = (edgesList: Edge<EdgeData>[], available: TypedResources) => {
+        let totalSent = 0;
+        const consumed: TypedResources = {};
+        
+        for (const edge of edgesList) {
+          const target = nodeMap.get(edge.target);
+          if (!target) continue;
+          
+          const flowRate = (edge.data as { flowRate?: number })?.flowRate ?? 1;
+          const targetSpace = getTargetSpace(target);
+          if (targetSpace <= 0) continue;
+          
+          const totalAvail = getTotalResources(available);
+          if (totalAvail <= 0) break;
+          
+          const toSend = Math.min(flowRate, targetSpace, totalAvail);
+          if (toSend <= 0) continue;
+          
+          // Send proportionally from available
+          for (const [tokenId, amount] of Object.entries(available)) {
+            if (amount <= 0) continue;
+            const proportion = amount / totalAvail;
+            const tokenSend = Math.floor(toSend * proportion);
+            if (tokenSend > 0) {
+              recordTypedTransfer(node, target, tokenId, tokenSend);
+              available[tokenId] = (available[tokenId] ?? 0) - tokenSend;
+              consumed[tokenId] = (consumed[tokenId] ?? 0) + tokenSend;
+              totalSent += tokenSend;
+            }
+          }
+        }
+        
+        return { totalSent, consumed };
+      };
+      
+      // Output A gets Input B's resources (cross)
+      const outputAResult = sendToTargets(edgesFromOutputA, { ...inputBTyped });
+      // Output B gets Input A's resources (cross)  
+      const outputBResult = sendToTargets(edgesFromOutputB, { ...inputATyped });
+      
+      // Track what was consumed (for removing from sources)
+      // Input A resources went to Output B
+      traderConsumedA.set(node.id, outputBResult.consumed);
+      // Input B resources went to Output A
+      traderConsumedB.set(node.id, outputAResult.consumed);
+      
+      node.data.lastSent = outputAResult.totalSent + outputBResult.totalSent;
+      
+      // Update trader's internal buffers for display
+      node.data.traderInputA = getTotalResources(inputATyped) - getTotalResources(outputBResult.consumed);
+      node.data.traderInputB = getTotalResources(inputBTyped) - getTotalResources(outputAResult.consumed);
+    }
+
     // Apply deltas at end of tick (snapshot semantics)
     // Now handles typed resources properly
     for (const node of nodeMap.values()) {
@@ -1069,6 +1186,15 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         
         node.data.typedResources = newTyped;
         node.data.resources = getTotalResources(newTyped);
+        continue;
+      }
+
+      if (node.data.nodeType === 'trader') {
+        // Trader: resources pass through, don't accumulate
+        // The trading logic already handled transfers in Phase 4
+        // Just update the display buffers which were set in Phase 4
+        node.data.typedResources = {};
+        node.data.resources = 0;
         continue;
       }
 
