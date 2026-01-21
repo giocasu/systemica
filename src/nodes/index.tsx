@@ -259,42 +259,55 @@ export const TraderNode = memo(({ data, selected }: CustomNodeProps) => {
   
   return (
     <div className={`custom-node node-trader ${activeClass} ${selected ? 'selected' : ''}`}>
-      {/* Two input handles on the left */}
+      {/* Two input handles on the left - colored to match outputs */}
       <Handle 
         type="target" 
         position={Position.Left} 
         id="input-a"
+        className="trader-handle-a"
         style={{ top: '30%' }}
       />
       <Handle 
         type="target" 
         position={Position.Left} 
         id="input-b"
+        className="trader-handle-b"
         style={{ top: '70%' }}
       />
       
+      {/* Cross lines SVG showing A->B and B->A */}
+      <svg className="trader-cross-lines" viewBox="0 0 60 40" preserveAspectRatio="none">
+        {/* Line from input-a (top-left) to output-b (bottom-right) */}
+        <line x1="0" y1="8" x2="60" y2="32" className="trader-line-a" />
+        {/* Line from input-b (bottom-left) to output-a (top-right) */}
+        <line x1="0" y1="32" x2="60" y2="8" className="trader-line-b" />
+        {/* Center crossing point */}
+        <circle cx="30" cy="20" r="4" className="trader-cross-point" />
+      </svg>
+      
       <div className="node-label">{data.label}</div>
-      <div className="trader-icon">⇄</div>
       <div className="trader-buffers">
-        <span className="trader-buffer-a" title="Input A buffer">{formatResources(inputA)}</span>
-        <span className="trader-separator">↔</span>
-        <span className="trader-buffer-b" title="Input B buffer">{formatResources(inputB)}</span>
+        <span className="trader-buffer-a" title="Input A → Output B">{formatResources(inputA)}</span>
+        <span className="trader-separator">×</span>
+        <span className="trader-buffer-b" title="Input B → Output A">{formatResources(inputB)}</span>
       </div>
       {lastSent > 0 && (
         <div className="node-rate">exchanged {formatResources(lastSent)}/tick</div>
       )}
       
-      {/* Two output handles on the right - crossed */}
+      {/* Two output handles on the right - colored to match inputs */}
       <Handle 
         type="source" 
         position={Position.Right} 
         id="output-a"
+        className="trader-handle-b"
         style={{ top: '30%' }}
       />
       <Handle 
         type="source" 
         position={Position.Right} 
         id="output-b"
+        className="trader-handle-a"
         style={{ top: '70%' }}
       />
     </div>
