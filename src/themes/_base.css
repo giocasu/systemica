@@ -1,0 +1,127 @@
+/* ============================================================================
+   SYSTEMICA - Base Theme Variables
+   ============================================================================
+   
+   This file contains the default theme variables used by Systemica.
+   All themes should override these variables to customize the appearance.
+   
+   See THEME_GUIDELINES.md for instructions on creating new themes.
+   ============================================================================ */
+
+:root {
+  /* -------------------------------------------------------------------------
+     COLOR PALETTE
+     ------------------------------------------------------------------------- */
+  
+  /* Background colors (darkest to lightest) */
+  --bg-primary: #1a1a2e;      /* Main background */
+  --bg-secondary: #16213e;    /* Panels, cards */
+  --bg-tertiary: #0f3460;     /* Buttons, inputs */
+  
+  /* Text colors */
+  --text-primary: #eee;       /* Main text */
+  --text-secondary: #aaa;     /* Muted text, labels */
+  
+  /* Accent colors */
+  --accent: #e94560;          /* Primary accent (buttons, highlights) */
+  --accent-hover: #ff6b6b;    /* Accent hover state */
+  
+  /* -------------------------------------------------------------------------
+     NODE STYLING
+     ------------------------------------------------------------------------- */
+  
+  --node-border-radius: 8px;
+  --node-border-width: 2px;
+  --node-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --node-padding: 12px 16px;
+  --node-min-width: 100px;
+  
+  /* Node type colors */
+  --node-source-color: #4ade80;
+  --node-pool-color: #60a5fa;
+  --node-drain-color: #f87171;
+  --node-converter-color: #fbbf24;
+  --node-gate-color: #a78bfa;
+  --node-trader-color: #ec4899;
+  
+  /* -------------------------------------------------------------------------
+     TYPOGRAPHY
+     ------------------------------------------------------------------------- */
+  
+  --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', monospace;
+  
+  /* -------------------------------------------------------------------------
+     TRADER NODE - Cross exchange colors
+     ------------------------------------------------------------------------- */
+  
+  --trader-line-a: #22d3ee;   /* Cyan - Input A to Output B */
+  --trader-line-b: #f472b6;   /* Pink - Input B to Output A */
+}
+
+/* ============================================================================
+   DEFAULT THEME - Classic Systemica Look
+   ============================================================================ */
+
+/* Trader cross lines - Default theme (more visible) */
+.trader-cross-lines {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70%;
+  height: 50%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.85;
+}
+
+.trader-line-a {
+  stroke: var(--trader-line-a);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.trader-line-b {
+  stroke: var(--trader-line-b);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.trader-cross-point {
+  fill: #fff;
+  stroke: var(--node-trader-color);
+  stroke-width: 2;
+}
+
+/* Trader handle colors - matching the cross lines */
+.trader-handle-a {
+  background: var(--trader-line-a) !important;
+  border-color: var(--trader-line-a) !important;
+}
+
+.trader-handle-b {
+  background: var(--trader-line-b) !important;
+  border-color: var(--trader-line-b) !important;
+}
+
+/* Trader buffers styling */
+.trader-buffers {
+  position: relative;
+  z-index: 1;
+}
+
+.trader-buffer-a {
+  color: var(--trader-line-a);
+  font-weight: 600;
+}
+
+.trader-buffer-b {
+  color: var(--trader-line-b);
+  font-weight: 600;
+}
+
+.trader-separator {
+  color: #888;
+  font-weight: bold;
+}

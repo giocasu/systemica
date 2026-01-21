@@ -1,0 +1,19 @@
+/* ============================================================================
+   SYSTEMICA THEMES - Main Entry Point
+   ============================================================================
+   
+   This file imports all theme CSS files.
+   To add a new theme, create a new CSS file and import it here.
+   
+   See THEME_GUIDELINES.md for instructions on creating new themes.
+   ============================================================================ */
+
+/* Base theme variables (always loaded first) */
+@import './_base.css';
+
+/* Individual themes */
+@import './blueprint.css';
+@import './soft-minimal.css';
+
+/* Add new theme imports below this line */
+/* @import './my-custom-theme.css'; */

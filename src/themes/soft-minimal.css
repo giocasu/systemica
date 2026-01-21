@@ -1,0 +1,263 @@
+/* ============================================================================
+   SOFT MINIMAL THEME - Clean geometric with warm tones
+   ============================================================================
+   
+   A modern, minimal theme with:
+   - Warm dark palette (stone colors)
+   - Soft shadows and blur effects
+   - Rounded geometric shapes
+   - Smooth hover animations
+   - Clear visual hierarchy
+   
+   ============================================================================ */
+
+[data-theme="soft-minimal"] {
+  /* Color palette */
+  --bg-primary: #1c1917;
+  --bg-secondary: #292524;
+  --bg-tertiary: #44403c;
+  --text-primary: #fafaf9;
+  --text-secondary: #a8a29e;
+  --accent: #f97316;
+  --accent-hover: #fb923c;
+  
+  /* Node styling */
+  --node-border-radius: 12px;
+  --node-border-width: 1px;
+  --node-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --node-padding: 16px 20px;
+  
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Node colors */
+  --node-source-color: #22c55e;
+  --node-pool-color: #3b82f6;
+  --node-drain-color: #ef4444;
+  --node-converter-color: #eab308;
+  --node-gate-color: #a855f7;
+  --node-trader-color: #ec4899;
+  
+  /* Trader lines */
+  --trader-line-a: #22d3ee;
+  --trader-line-b: #f472b6;
+}
+
+/* Background */
+[data-theme="soft-minimal"] body,
+[data-theme="soft-minimal"] .flow-wrapper {
+  background: var(--bg-primary);
+}
+
+/* ============================================================================
+   BASE NODE STYLING
+   ============================================================================ */
+
+[data-theme="soft-minimal"] .custom-node {
+  background: var(--bg-secondary) !important;
+  border: var(--node-border-width) solid var(--bg-tertiary) !important;
+  border-radius: var(--node-border-radius) !important;
+  box-shadow: var(--node-shadow) !important;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+}
+
+[data-theme="soft-minimal"] .custom-node:hover {
+  border-color: var(--accent) !important;
+  transform: translateY(-2px);
+}
+
+[data-theme="soft-minimal"] .custom-node .node-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+[data-theme="soft-minimal"] .custom-node .node-value {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+[data-theme="soft-minimal"] .custom-node .node-rate {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+/* ============================================================================
+   NODE SHAPES
+   ============================================================================ */
+
+/* Source = Rounded square with left accent */
+[data-theme="soft-minimal"] .node-source {
+  border-radius: 16px !important;
+  border-left: 4px solid var(--node-source-color) !important;
+}
+
+[data-theme="soft-minimal"] .node-source .token-badge {
+  top: -8px;
+  right: -8px;
+}
+
+/* Pool = Circle */
+[data-theme="soft-minimal"] .node-pool {
+  border-radius: 50% !important;
+  min-width: 100px;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid var(--node-pool-color) !important;
+}
+
+/* Drain = Rounded with bottom accent */
+[data-theme="soft-minimal"] .node-drain {
+  border-radius: 16px !important;
+  border-bottom: 4px solid var(--node-drain-color) !important;
+}
+
+/* Converter = Rectangle with diamond indicator */
+[data-theme="soft-minimal"] .node-converter {
+  border-radius: 4px !important;
+  transform: rotate(0deg);
+  border: 2px solid var(--node-converter-color) !important;
+  position: relative;
+}
+
+[data-theme="soft-minimal"] .node-converter::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--node-converter-color);
+  border-radius: 2px;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+/* Gate = Pill shape */
+[data-theme="soft-minimal"] .node-gate {
+  border-radius: 999px !important;
+  min-width: 120px;
+  border: 2px solid var(--node-gate-color) !important;
+}
+
+/* Trader = Rounded with side dots */
+[data-theme="soft-minimal"] .node-trader {
+  border-radius: 20px !important;
+  border: 2px solid var(--node-trader-color) !important;
+  position: relative;
+}
+
+/* ============================================================================
+   HANDLES
+   ============================================================================ */
+
+[data-theme="soft-minimal"] .react-flow__handle {
+  background: var(--bg-secondary);
+  border: 2px solid var(--accent);
+  width: 12px;
+  height: 12px;
+  transition: all 0.2s ease;
+}
+
+[data-theme="soft-minimal"] .react-flow__handle:hover {
+  transform: scale(1.3);
+  background: var(--accent);
+}
+
+/* ============================================================================
+   EDGES
+   ============================================================================ */
+
+[data-theme="soft-minimal"] .react-flow__edge-path {
+  stroke: var(--text-secondary);
+  stroke-width: 2;
+}
+
+/* ============================================================================
+   ACTIVE STATES
+   ============================================================================ */
+
+[data-theme="soft-minimal"] .source-active {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.4), var(--node-shadow) !important;
+}
+
+[data-theme="soft-minimal"] .pool-active {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), var(--node-shadow) !important;
+}
+
+[data-theme="soft-minimal"] .converter-active {
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.4), var(--node-shadow) !important;
+}
+
+[data-theme="soft-minimal"] .drain-active {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), var(--node-shadow) !important;
+}
+
+[data-theme="soft-minimal"] .trader-active {
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.4), var(--node-shadow) !important;
+}
+
+/* ============================================================================
+   TRADER CROSS LINES
+   ============================================================================ */
+
+[data-theme="soft-minimal"] .trader-cross-lines {
+  opacity: 0.6;
+}
+
+[data-theme="soft-minimal"] .trader-line-a,
+[data-theme="soft-minimal"] .trader-line-b {
+  stroke-width: 3;
+}
+
+/* ============================================================================
+   UI COMPONENTS
+   ============================================================================ */
+
+[data-theme="soft-minimal"] .toolbar {
+  background: var(--bg-secondary);
+  border-color: var(--bg-tertiary);
+}
+
+[data-theme="soft-minimal"] .controls button {
+  background: var(--bg-tertiary);
+  border-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+[data-theme="soft-minimal"] .controls button:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+[data-theme="soft-minimal"] .draggable-panel {
+  background: var(--bg-secondary);
+  border-color: var(--bg-tertiary);
+}
+
+[data-theme="soft-minimal"] .status-bar {
+  background: var(--bg-secondary);
+  border-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+[data-theme="soft-minimal"] .node-palette-content {
+  background: var(--bg-secondary);
+}
+
+[data-theme="soft-minimal"] .palette-item-vertical {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+[data-theme="soft-minimal"] .palette-item-vertical:hover {
+  background: var(--accent);
+}
