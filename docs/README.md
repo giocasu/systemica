@@ -110,6 +110,8 @@ On touch devices: long-press a node, then drag onto the canvas.
 | | Drain | Consumes resources |
 | | Converter | Transforms resources |
 | | Gate | Controls flow |
+| | Trader | Cross-exchanges resources |
+| | Delay | Delays resource transfer |
 
 ---
 
@@ -248,6 +250,65 @@ Transfers resources only when a condition is met.
 
 ---
 
+### Trader (Cross-Exchange)
+
+Exchanges resources between two separate flows. Takes input from two different sources (A and B) and outputs them swapped.
+
+| Property | Description |
+|----------|-------------|
+| Label | Node name |
+| Rate A→B | Conversion rate from input A to output B |
+| Rate B→A | Conversion rate from input B to output A |
+| Input A | Resources accumulated from top input |
+| Input B | Resources accumulated from bottom input |
+
+**How it works:**
+- Has two input handles (top and bottom) and two output handles
+- Resources entering from input A are sent to output B
+- Resources entering from input B are sent to output A
+- Conversion rates can be 1:1 or asymmetric (e.g., 2 gold → 1 gem)
+
+**Use cases:**
+- Currency exchange (dollars ↔ euros)
+- Trading systems (items ↔ gold)
+- Resource swapping
+- Cross-economy bridges
+
+---
+
+### Delay
+
+Delays resource transfer by a specified number of ticks. Inspired by Machinations delay nodes.
+
+| Property | Description |
+|----------|-------------|
+| Label | Node name |
+| Delay Ticks | Number of ticks before resources are released |
+| Mode | **Delay** (parallel) or **Queue** (one at a time) |
+| Processing Mode | Fixed value, Formula, or Script |
+
+**Modes:**
+- **Delay Mode (D)**: All incoming resources are delayed in parallel. Multiple resources can be "in flight" simultaneously.
+- **Queue Mode (Q)**: Resources are processed one at a time. A new resource cannot enter until the previous one exits.
+
+**Dynamic Delay:**
+- Use **Formula** mode with variables: `queueSize`, `delayTicks`, `tick`
+- Use **Script** mode for complex logic
+
+**Visual indicators:**
+- Slots show resources in transit
+- Badge shows D (delay) or Q (queue) mode
+- Timer shows ticks remaining
+
+**Use cases:**
+- Cooldown timers
+- Production delays (order → delivery)
+- Respawn timers
+- Crafting time
+- Queue systems (one at a time processing)
+
+---
+
 ## Token System
 
 Systemica supports **typed resources** (tokens) inspired by Machinations. Instead of generic resources, you can create distinct token types with colors and icons.
@@ -357,10 +418,13 @@ The simulation proceeds in discrete **ticks**. Each tick:
 1. **Phase 1:** Sources produce resources (if probability check passes)
 2. **Phase 2:** Resources flow through connections (based on the **start-of-tick snapshot**)
 3. **Phase 3:** Converters process accumulated resources (from the **start-of-tick snapshot**)
+4. **Phase 4:** Gates evaluate conditions and transfer resources
+5. **Phase 5:** Delay nodes process queues and release resources
 
 Notes:
 - Resources received during a tick become available for processing/forwarding on the **next tick** (so chains take multiple ticks).
 - Sources can produce and send in the same tick; buffer capacity only limits what remains stored after sending.
+- Delay nodes hold resources for the specified number of ticks before releasing them.
 
 ### Controls
 
@@ -681,6 +745,36 @@ Both **Formula** and **Script** modes include a **✓ Validate** button:
 Selection:
 - `Shift + Click` adds/removes nodes from the selection
 - `Shift + Drag` box-selects multiple nodes
+
+---
+
+## Theme System
+
+Systemica supports multiple visual themes to customize the appearance of the editor.
+
+### Available Themes
+
+| Theme | Description |
+|-------|-------------|
+| **Default** | Dark mode with colored nodes |
+| **Blueprint** | Technical wireframe aesthetic, blue grid background |
+| **Soft Minimal** | Light, warm tones with pastel colors |
+
+### Switching Themes
+
+Click the theme button in the toolbar to cycle through available themes.
+
+### Creating Custom Themes
+
+Themes are defined in CSS files under `src/themes/`. To create a new theme:
+
+1. Create a new CSS file (e.g., `my-theme.css`)
+2. Define your theme using `[data-theme="my-theme"]` selector
+3. Override the CSS variables from `_base.css`
+4. Import your theme in `index.css`
+5. Add the theme to the store's theme list
+
+See `src/themes/THEME_GUIDELINES.md` for detailed instructions.
 
 ---
 

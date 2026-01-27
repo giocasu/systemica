@@ -110,6 +110,8 @@ Su dispositivi touch: long-press su un nodo, poi trascina sul canvas.
 | | Drain | Consuma risorse |
 | | Converter | Trasforma risorse |
 | | Gate | Controlla flusso |
+| | Trader | Scambia risorse tra flussi |
+| | Delay | Ritarda il trasferimento |
 
 ---
 
@@ -232,6 +234,65 @@ Trasferisce risorse solo se una condizione è soddisfatta.
 
 ---
 
+### Trader (Scambio Incrociato)
+
+Scambia risorse tra due flussi separati. Riceve input da due sorgenti diverse (A e B) e li invia invertiti alle uscite.
+
+| Proprietà | Descrizione |
+|-----------|-------------|
+| Label | Nome del nodo |
+| Rate A→B | Tasso di conversione da input A a output B |
+| Rate B→A | Tasso di conversione da input B a output A |
+| Input A | Risorse accumulate dall'input superiore |
+| Input B | Risorse accumulate dall'input inferiore |
+
+**Come funziona:**
+- Ha due handle di input (sopra e sotto) e due di output
+- Le risorse dall'input A vengono inviate all'output B
+- Le risorse dall'input B vengono inviate all'output A
+- I tassi possono essere 1:1 o asimmetrici (es. 2 gold → 1 gemma)
+
+**Esempi d'uso:**
+- Cambio valuta (dollari ↔ euro)
+- Sistemi di trading (oggetti ↔ gold)
+- Scambio risorse
+- Ponti tra economie
+
+---
+
+### Delay (Ritardo)
+
+Ritarda il trasferimento delle risorse di un numero specificato di tick. Ispirato ai nodi delay di Machinations.
+
+| Proprietà | Descrizione |
+|-----------|-------------|
+| Label | Nome del nodo |
+| Delay Ticks | Numero di tick prima del rilascio |
+| Mode | **Delay** (parallelo) o **Queue** (uno alla volta) |
+| Processing Mode | Valore fisso, Formula o Script |
+
+**Modalità:**
+- **Delay Mode (D)**: Tutte le risorse in entrata sono ritardate in parallelo. Più risorse possono essere "in volo" simultaneamente.
+- **Queue Mode (Q)**: Le risorse sono processate una alla volta. Una nuova risorsa non può entrare finché la precedente non esce.
+
+**Delay Dinamico:**
+- Usa modalità **Formula** con variabili: `queueSize`, `delayTicks`, `tick`
+- Usa modalità **Script** per logiche complesse
+
+**Indicatori visivi:**
+- Gli slot mostrano le risorse in transito
+- Il badge mostra D (delay) o Q (queue)
+- Il timer mostra i tick rimanenti
+
+**Esempi d'uso:**
+- Timer di cooldown
+- Ritardi di produzione (ordine → consegna)
+- Timer di respawn
+- Tempo di crafting
+- Sistemi a coda (elaborazione uno alla volta)
+
+---
+
 ## Sistema Token
 
 Systemica supporta **risorse tipizzate** (token) ispirate a Machinations. Invece di risorse generiche, puoi creare tipi di token distinti con colori e icone.
@@ -341,10 +402,13 @@ La simulazione procede per **tick** discreti. Ad ogni tick:
 1. **Fase 1:** I Source producono risorse (se probability check passa)
 2. **Fase 2:** Le risorse fluiscono attraverso le connessioni (basandosi sullo **snapshot a inizio tick**)
 3. **Fase 3:** I Converter processano le risorse accumulate (dallo **snapshot a inizio tick**)
+4. **Fase 4:** I Gate valutano le condizioni e trasferiscono risorse
+5. **Fase 5:** I nodi Delay processano le code e rilasciano risorse
 
 Note:
 - Le risorse ricevute durante un tick diventano disponibili per essere processate/inoltrate al **tick successivo** (quindi le catene richiedono più tick).
-- Le sorgenti possono produrre e inviare nello stesso tick; la buffer capacity limita solo ciò che resta in buffer dopo l’invio.
+- Le sorgenti possono produrre e inviare nello stesso tick; la buffer capacity limita solo ciò che resta in buffer dopo l'invio.
+- I nodi Delay trattengono le risorse per il numero di tick specificato prima di rilasciarle.
 
 ### Controlli
 
@@ -647,6 +711,36 @@ Sia la modalità **Formula** che **Script** includono un pulsante **✓ Validate
 Selezione:
 - `Shift + Click` aggiunge/rimuove nodi dalla selezione
 - `Shift + Drag` seleziona più nodi con riquadro
+
+---
+
+## Sistema Temi
+
+Systemica supporta più temi visivi per personalizzare l'aspetto dell'editor.
+
+### Temi Disponibili
+
+| Tema | Descrizione |
+|------|-------------|
+| **Default** | Modalità scura con nodi colorati |
+| **Blueprint** | Estetica tecnica wireframe, sfondo griglia blu |
+| **Soft Minimal** | Toni chiari e caldi con colori pastello |
+
+### Cambiare Tema
+
+Clicca il pulsante tema nella toolbar per ciclare tra i temi disponibili.
+
+### Creare Temi Personalizzati
+
+I temi sono definiti in file CSS sotto `src/themes/`. Per creare un nuovo tema:
+
+1. Crea un nuovo file CSS (es. `mio-tema.css`)
+2. Definisci il tema usando il selettore `[data-theme="mio-tema"]`
+3. Sovrascrivi le variabili CSS da `_base.css`
+4. Importa il tema in `index.css`
+5. Aggiungi il tema alla lista dello store
+
+Vedi `src/themes/THEME_GUIDELINES.md` per istruzioni dettagliate.
 
 ---
 

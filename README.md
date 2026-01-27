@@ -2,7 +2,7 @@
 
 A visual **game economy simulator** inspired by [Machinations](https://machinations.io/), designed to model and test Producer-Consumer systems in video games.
 
-![Version](https://img.shields.io/badge/version-0.12.0-blue)
+![Version](https://img.shields.io/badge/version-0.13.0-blue)
 ![React](https://img.shields.io/badge/React-18.2-61dafb)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3-3178c6)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -19,7 +19,8 @@ A visual **game economy simulator** inspired by [Machinations](https://machinati
 
 - **Visual Node Editor** - Drag & drop nodes to build economy diagrams
 - **Draggable Panels** - Customize your workspace layout
-- **5 Node Types** - Source, Pool, Drain, Converter, Gate
+- **7 Node Types** - Source, Pool, Drain, Converter, Gate, Trader, Delay
+- **Theme System** - Multiple visual themes (Default, Blueprint, Soft Minimal)
 - **Token System** - Typed resources with 5 colors + custom tokens (emoji, name, color)
 - **Multi-Token Pools** - Pools accumulate different token types with visual breakdown
 - **Converter Recipes** - Multi-input/output conversion recipes
