@@ -1,11 +1,14 @@
 // Node types
-export type NodeType = 'source' | 'pool' | 'drain' | 'converter' | 'gate' | 'trader';
+export type NodeType = 'source' | 'pool' | 'drain' | 'converter' | 'gate' | 'trader' | 'delay';
 
 // Processing mode: fixed rate, formula expression, or full script
 export type ProcessingMode = 'fixed' | 'formula' | 'script';
 
 // Source activation mode: automatic per tick or manual click
 export type ActivationMode = 'auto' | 'manual';
+
+// Delay mode: parallel (all resources delayed simultaneously) or queue (one at a time)
+export type DelayMode = 'delay' | 'queue';
 
 // Distribution mode: how resources are distributed to multiple outputs
 // continuous: divisible resources (water, energy) - split equally
@@ -132,6 +135,23 @@ export interface NodeData extends Record<string, unknown> {
   traderTypedA?: TypedResources;
   // Trader: typed resources from input B  
   traderTypedB?: TypedResources;
+  
+  // ============================================================================
+  // DELAY/QUEUE - Time-based resource processing
+  // ============================================================================
+  
+  // Delay mode: 'delay' = parallel processing, 'queue' = one at a time
+  delayMode?: DelayMode;
+  // Number of ticks to delay resources
+  delayTicks?: number;
+  // Queue of resources being delayed: Array of { amount, ticksRemaining, tokenType }
+  delayQueue?: Array<{ amount: number; ticksRemaining: number; tokenType?: string }>;
+  // Number of resources currently being processed
+  delayProcessing?: number;
+  // Last output for UI feedback
+  lastOutput?: number;
+  // Calculated delay (when using formula/script) for display
+  calculatedDelay?: number;
 }
 
 // Default values for each node type
@@ -287,6 +307,37 @@ export const nodeDefaults: Record<NodeType, Partial<NodeData>> = {
     traderInputA: 0,
     traderInputB: 0,
   },
+  delay: {
+    resources: 0,
+    capacity: -1,
+    productionRate: 0,
+    consumptionRate: 0,
+    isActive: true,
+    inputRatio: 1,
+    outputRatio: 1,
+    probability: 100,
+    gateCondition: 'always',
+    gateThreshold: 0,
+    processingMode: 'fixed',
+    formula: '',
+    useFormula: false,
+    script: '',
+    scriptState: {},
+    distributionMode: 'continuous',
+    lastDistributionIndex: 0,
+    maxProduction: -1,
+    totalProduced: 0,
+    lastSent: 0,
+    // Token system
+    tokenType: 'black',
+    typedResources: {},
+    // Delay specific
+    delayMode: 'delay',
+    delayTicks: 3,
+    delayQueue: [],
+    delayProcessing: 0,
+    lastOutput: 0,
+  },
 };
 
 // Node visual config
@@ -297,4 +348,5 @@ export const nodeConfig: Record<NodeType, { icon: string; label: string }> = {
   converter: { icon: '🔄', label: 'Converter' },
   gate: { icon: '🚪', label: 'Gate' },
   trader: { icon: '⇄', label: 'Trader' },
+  delay: { icon: '⏱️', label: 'Delay' },
 };

@@ -205,6 +205,10 @@
   box-shadow: 0 0 20px rgba(236, 72, 153, 0.4), var(--node-shadow) !important;
 }
 
+[data-theme="soft-minimal"] .delay-active {
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.4), var(--node-shadow) !important;
+}
+
 /* ============================================================================
    TRADER CROSS LINES
    ============================================================================ */
@@ -260,4 +264,27 @@
 
 [data-theme="soft-minimal"] .palette-item-vertical:hover {
   background: var(--accent);
+}
+
+/* ============================================================================
+   DELAY NODE - Pill with time indicator
+   ============================================================================ */
+
+[data-theme="soft-minimal"] .node-delay {
+  border-radius: 20px !important;
+  border: 2px solid #38bdf8 !important;
+  position: relative;
+}
+
+[data-theme="soft-minimal"] .delay-slot {
+  border-color: #38bdf8;
+}
+
+[data-theme="soft-minimal"] .delay-slot.filled {
+  background: #38bdf8;
+}
+
+[data-theme="soft-minimal"] .delay-mode {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
 }

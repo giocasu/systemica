@@ -37,6 +37,8 @@ interface FormulaContext {
   capacity: number;
   input?: number; // For converters: the amount of input resources
   totalProduced?: number; // For sources: total produced so far
+  queueSize?: number; // For delay: number of items in queue
+  delayTicks?: number; // For delay: current delay setting
 }
 
 // Create a safe evaluation context with allowed functions
@@ -48,6 +50,8 @@ const createSafeContext = (ctx: FormulaContext) => ({
   input: ctx.input ?? 0,
   totalProduced: ctx.totalProduced ?? 0,
   produced: ctx.totalProduced ?? 0, // Alias
+  queueSize: ctx.queueSize ?? 0, // Delay: items in queue
+  delayTicks: ctx.delayTicks ?? 1, // Delay: current delay setting
   
   // Math functions
   min: Math.min,

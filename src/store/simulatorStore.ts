@@ -638,7 +638,8 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       const source = nodeMap.get(sourceId);
       if (!source || !source.data.isActive) continue;
 
-      if (source.data.nodeType === 'converter' || source.data.nodeType === 'drain' || source.data.nodeType === 'trader') continue;
+      // Skip nodes that have their own dedicated processing phase
+      if (source.data.nodeType === 'converter' || source.data.nodeType === 'drain' || source.data.nodeType === 'trader' || source.data.nodeType === 'delay') continue;
 
       const isSourceNode = source.data.nodeType === 'source';
 
@@ -1097,6 +1098,151 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       node.data.traderInputB = getTotalResources(inputBTyped) - getTotalResources(outputAResult.consumed);
     }
 
+    // Phase 5: Delays - hold resources for a number of ticks before releasing
+    // Two modes: 
+    // - 'delay': All resources are processed in parallel (each delayed independently)
+    // - 'queue': Only one resource processed at a time (others wait in queue)
+    // Supports formula/script for dynamic delay calculation
+    const delayConsumed = new Map<string, TypedResources>();
+    
+    for (const node of nodeMap.values()) {
+      if (node.data.nodeType !== 'delay' || !node.data.isActive) continue;
+
+      const prob = node.data.probability ?? 100;
+      if (!checkProbability(prob)) continue;
+
+      const delayMode = node.data.delayMode ?? 'delay';
+      let delayQueue = [...(node.data.delayQueue ?? [])];
+      
+      // Calculate delay ticks - can be fixed, formula, or script
+      const mode = node.data.processingMode || 'fixed';
+      let delayTicks: number;
+      
+      if (mode === 'formula' && node.data.formula) {
+        // Formula mode: evaluate formula for delay
+        // Available variables: tick, queueSize, resources
+        const queueSize = delayQueue.reduce((sum, item) => sum + item.amount, 0);
+        const result = evaluateFormula(node.data.formula, {
+          tick: currentTick,
+          queueSize,
+          resources: node.data.resources,
+          capacity: node.data.capacity,
+        });
+        delayTicks = Math.max(1, Math.round(result ?? node.data.delayTicks ?? 3));
+      } else if (mode === 'script' && node.data.script) {
+        // Script mode: use last output from script execution
+        const lastOutput = node.data.scriptState?.lastOutput;
+        delayTicks = Math.max(1, Math.round(typeof lastOutput === 'number' ? lastOutput : node.data.delayTicks ?? 3));
+      } else {
+        // Fixed mode
+        delayTicks = node.data.delayTicks ?? 3;
+      }
+      
+      // Store calculated delay for display
+      node.data.calculatedDelay = delayTicks;
+      
+      // Find incoming and outgoing edges
+      const incomingEdges = edges.filter(e => e.target === node.id);
+      const outgoingEdges = edgesBySource.get(node.id) ?? [];
+      
+      // Step 1: Decrement ticksRemaining for all items in queue
+      delayQueue = delayQueue.map(item => ({
+        ...item,
+        ticksRemaining: item.ticksRemaining - 1
+      }));
+      
+      // Step 2: Release resources that have completed their delay (ticksRemaining <= 0)
+      let totalOutput = 0;
+      const readyToRelease = delayQueue.filter(item => item.ticksRemaining <= 0);
+      delayQueue = delayQueue.filter(item => item.ticksRemaining > 0);
+      
+      // Send released resources to targets
+      for (const releasedItem of readyToRelease) {
+        let remaining = releasedItem.amount;
+        const tokenType = releasedItem.tokenType ?? 'black';
+        
+        for (const edge of outgoingEdges) {
+          if (remaining <= 0) break;
+          
+          const target = nodeMap.get(edge.target);
+          if (!target) continue;
+          
+          const flowRate = (edge.data as { flowRate?: number })?.flowRate ?? 1;
+          const targetSpace = getTargetSpace(target);
+          if (targetSpace <= 0) continue;
+          
+          const toSend = Math.min(remaining, flowRate, targetSpace);
+          if (toSend > 0) {
+            recordTypedTransfer(node, target, tokenType, toSend);
+            remaining -= toSend;
+            totalOutput += toSend;
+          }
+        }
+      }
+      
+      // Step 3: Accept new incoming resources
+      let inputConsumed: TypedResources = {};
+      
+      for (const edge of incomingEdges) {
+        const sourceNode = nodeMap.get(edge.source);
+        if (!sourceNode || !sourceNode.data.isActive) continue;
+        
+        const flowRate = (edge.data as { flowRate?: number })?.flowRate ?? 1;
+        const sourceTyped = baseTypedResources.get(edge.source) ?? {};
+        
+        for (const [tokenId, amount] of Object.entries(sourceTyped)) {
+          let toAccept = Math.min(amount, flowRate);
+          
+          // In queue mode, only accept if nothing is currently being processed
+          if (delayMode === 'queue') {
+            const currentlyProcessing = delayQueue.reduce((sum, item) => sum + item.amount, 0);
+            if (currentlyProcessing > 0) {
+              // Add to waiting queue (ticksRemaining set to delayTicks + queue position)
+              // This simulates waiting - we'll add with extra ticks
+              const queuePosition = delayQueue.length;
+              if (toAccept > 0) {
+                delayQueue.push({
+                  amount: toAccept,
+                  ticksRemaining: delayTicks + (queuePosition * delayTicks),
+                  tokenType: tokenId
+                });
+                inputConsumed[tokenId] = (inputConsumed[tokenId] ?? 0) + toAccept;
+              }
+            } else {
+              // Queue is empty, start processing immediately
+              if (toAccept > 0) {
+                delayQueue.push({
+                  amount: toAccept,
+                  ticksRemaining: delayTicks,
+                  tokenType: tokenId
+                });
+                inputConsumed[tokenId] = (inputConsumed[tokenId] ?? 0) + toAccept;
+              }
+            }
+          } else {
+            // Delay mode: all resources are processed in parallel
+            if (toAccept > 0) {
+              delayQueue.push({
+                amount: toAccept,
+                ticksRemaining: delayTicks,
+                tokenType: tokenId
+              });
+              inputConsumed[tokenId] = (inputConsumed[tokenId] ?? 0) + toAccept;
+            }
+          }
+        }
+      }
+      
+      // Track what was consumed from sources
+      delayConsumed.set(node.id, inputConsumed);
+      
+      // Update node data
+      node.data.delayQueue = delayQueue;
+      node.data.delayProcessing = delayQueue.reduce((sum, item) => sum + item.amount, 0);
+      node.data.lastOutput = totalOutput;
+      node.data.lastSent = totalOutput;
+    }
+
     // Apply deltas at end of tick (snapshot semantics)
     // Now handles typed resources properly
     for (const node of nodeMap.values()) {
@@ -1195,6 +1341,19 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         // Just update the display buffers which were set in Phase 4
         node.data.typedResources = {};
         node.data.resources = 0;
+        continue;
+      }
+
+      if (node.data.nodeType === 'delay') {
+        // Delay: resources are held in the delay queue, not in typedResources
+        // The delay logic in Phase 5 already handled everything
+        // Display the number of resources in the queue
+        const queueTotal = (node.data.delayQueue ?? []).reduce(
+          (sum: number, item: { amount: number }) => sum + item.amount, 
+          0
+        );
+        node.data.typedResources = {};
+        node.data.resources = queueTotal;
         continue;
       }
 

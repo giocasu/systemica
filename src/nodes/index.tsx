@@ -314,6 +314,75 @@ export const TraderNode = memo(({ data, selected }: CustomNodeProps) => {
   );
 });
 
+// Delay Node - delays resources for a specified number of ticks
+// Two modes: 'delay' (parallel) or 'queue' (one at a time)
+// Supports formula/script for dynamic delay calculation
+export const DelayNode = memo(({ data, selected }: CustomNodeProps) => {
+  const delayMode = data.delayMode ?? 'delay';
+  const delayQueue = data.delayQueue ?? [];
+  const lastOutput = data.lastOutput ?? 0;
+  const activeClass = lastOutput > 0 ? 'delay-active' : '';
+  
+  // Get processing mode and display appropriate delay value
+  const mode = getMode(data);
+  const displayDelay = data.calculatedDelay ?? data.delayTicks ?? 3;
+  const isFormula = mode === 'formula';
+  const isScript = mode === 'script';
+  
+  // Calculate total resources in queue
+  const queuedResources = delayQueue.reduce((sum, item) => sum + item.amount, 0);
+  
+  // Get the next resource to be released (lowest ticksRemaining)
+  const nextRelease = delayQueue.length > 0 
+    ? Math.min(...delayQueue.map(item => item.ticksRemaining))
+    : null;
+  
+  return (
+    <div className={`custom-node node-delay ${activeClass} ${selected ? 'selected' : ''}`}>
+      <Handle type="target" position={Position.Left} />
+      
+      <div className="node-label">{data.label}</div>
+      
+      {/* Visual representation of delay queue */}
+      <div className="delay-visual">
+        <div className="delay-slots">
+          {Array.from({ length: Math.min(displayDelay, 5) }).map((_, i) => {
+            const hasResource = delayQueue.some(item => item.ticksRemaining === i + 1);
+            return (
+              <div 
+                key={i} 
+                className={`delay-slot ${hasResource ? 'filled' : ''}`}
+                title={`Tick ${i + 1}`}
+              />
+            );
+          })}
+          {displayDelay > 5 && <span className="delay-more">+{displayDelay - 5}</span>}
+        </div>
+      </div>
+      
+      <div className="delay-info">
+        <span className="delay-mode">{delayMode === 'queue' ? 'Q' : 'D'}</span>
+        <span className="delay-ticks">
+          {isFormula ? '📐' : isScript ? '📜' : ''}{displayDelay}t
+        </span>
+      </div>
+      
+      {queuedResources > 0 && (
+        <div className="node-rate">
+          {formatResources(queuedResources)} in{delayMode === 'queue' ? ' queue' : ' delay'}
+          {nextRelease !== null && ` (next: ${nextRelease}t)`}
+        </div>
+      )}
+      
+      {lastOutput > 0 && (
+        <div className="node-rate output">→ {formatResources(lastOutput)}/tick</div>
+      )}
+      
+      <Handle type="source" position={Position.Right} />
+    </div>
+  );
+});
+
 // Export all node types for React Flow
 export const nodeTypes = {
   source: SourceNode,
@@ -322,4 +391,5 @@ export const nodeTypes = {
   converter: ConverterNode,
   gate: GateNode,
   trader: TraderNode,
+  delay: DelayNode,
 };

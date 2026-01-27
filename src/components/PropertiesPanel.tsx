@@ -39,8 +39,8 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
   // Determine current processing mode (support legacy useFormula)
   const currentMode: ProcessingMode = data.processingMode || (data.useFormula ? 'formula' : 'fixed');
   
-  // Can this node type use processing modes? (source and converter)
-  const supportsProcessingModes = data.nodeType === 'source' || data.nodeType === 'converter';
+  // Can this node type use processing modes? (source, converter, delay)
+  const supportsProcessingModes = data.nodeType === 'source' || data.nodeType === 'converter' || data.nodeType === 'delay';
 
   const handleChange = (field: keyof NodeData, value: unknown) => {
     // When resources change, sync typedResources with default token
@@ -470,6 +470,54 @@ return floor(input + bonus);`}</pre>
               `Open if < ${data.gateThreshold}`
             }</span>
           </div>
+        </>
+      )}
+
+      {data.nodeType === 'delay' && (
+        <>
+          <div className="property-group">
+            <label>Mode</label>
+            <select
+              value={data.delayMode ?? 'delay'}
+              onChange={(e) => handleChange('delayMode', e.target.value)}
+            >
+              <option value="delay">Delay (parallel)</option>
+              <option value="queue">Queue (one at a time)</option>
+            </select>
+          </div>
+          
+          {/* Fixed delay ticks - only show when not using formula/script */}
+          {currentMode === 'fixed' && (
+            <div className="property-group">
+              <label>Delay (ticks)</label>
+              <input
+                type="number"
+                value={data.delayTicks ?? 3}
+                min={1}
+                max={100}
+                onChange={(e) => handleChange('delayTicks', parseInt(e.target.value) || 1)}
+              />
+            </div>
+          )}
+          
+          <div className="property-group info">
+            <span>⏱️ {
+              currentMode === 'fixed' 
+                ? (data.delayMode === 'queue' 
+                    ? `Queue: process 1 resource every ${data.delayTicks ?? 3} ticks`
+                    : `Delay: all resources wait ${data.delayTicks ?? 3} ticks`)
+                : currentMode === 'formula'
+                  ? 'Delay calculated by formula'
+                  : 'Delay calculated by script'
+            }</span>
+          </div>
+          {(data.delayQueue?.length ?? 0) > 0 && (
+            <div className="property-group info">
+              <span>📦 {data.delayQueue?.length} items in queue ({
+                data.delayQueue?.reduce((sum, item) => sum + item.amount, 0)
+              } resources)</span>
+            </div>
+          )}
         </>
       )}
 
