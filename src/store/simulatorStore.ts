@@ -96,7 +96,7 @@ interface SimulatorState {
   clearCanvas: () => void;
   toggleRunning: () => void;
   tick: () => void;
-  step: () => void;
+  step: () => Promise<void>;
   reset: () => void;
   newProject: () => void;
   executeScriptsAsync: () => Promise<void>;
@@ -476,7 +476,13 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   },
 
   toggleRunning: () => {
+    const wasRunning = get().isRunning;
     set((state) => ({ isRunning: !state.isRunning }));
+    
+    // Pre-execute scripts when starting simulation to avoid "0" first tick
+    if (!wasRunning) {
+      get().executeScriptsAsync();
+    }
   },
 
   tick: () => {
@@ -1498,7 +1504,12 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     });
   },
 
-  step: () => {
+  step: async () => {
+    // Pre-execute scripts before the first tick to ensure lastOutput is populated
+    const { currentTick } = get();
+    if (currentTick === 0) {
+      await get().executeScriptsAsync();
+    }
     get().tick();
   },
 
@@ -1506,13 +1517,40 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     const { nodes } = get();
     
     set({
-      nodes: nodes.map((node) => ({
-        ...node,
-        data: {
-          ...node.data,
-          resources: nodeDefaults[node.data.nodeType].resources ?? 0,
-        },
-      })),
+      nodes: nodes.map((node) => {
+        const defaults = nodeDefaults[node.data.nodeType];
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            // Reset resources to default
+            resources: defaults.resources ?? 0,
+            // Reset typed resources (multi-token)
+            typedResources: {},
+            // Reset production counters
+            totalProduced: 0,
+            lastProduced: 0,
+            lastConsumed: 0,
+            lastReceived: 0,
+            lastConverted: 0,
+            lastSent: 0,
+            lastOutput: 0,
+            // Reset distribution index
+            lastDistributionIndex: 0,
+            // Reset script state
+            scriptState: {},
+            // Reset Trader accumulators
+            traderInputA: 0,
+            traderInputB: 0,
+            traderTypedA: {},
+            traderTypedB: {},
+            // Reset Delay queue
+            delayQueue: [],
+            delayProcessing: 0,
+            calculatedDelay: undefined,
+          },
+        };
+      }),
       currentTick: 0,
       isRunning: false,
       resourceHistory: [],

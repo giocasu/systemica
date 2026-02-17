@@ -681,6 +681,13 @@ return 5; // Speed up
 2. Select a previously saved `.json` file
 3. The diagram is loaded
 
+### JSON Schema
+
+Project files follow a defined JSON schema. Use it for validation or to build tools that work with Systemica files:
+
+- **Schema file**: [systemica-project.schema.json](systemica-project.schema.json)
+- Add `"$schema": "./systemica-project.schema.json"` to your project files for IDE support
+
 ### Export Statistics CSV
 
 1. Run the simulation for some ticks
