@@ -1456,7 +1456,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       return { 
         resources: node.data.resources, 
         capacity: node.data.capacity,
-        tokens: node.data.typedResources,
+        tokens: node.data.typedResources || {},
         tokenType: node.data.tokenType
       };
     };

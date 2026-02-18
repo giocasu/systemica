@@ -118,7 +118,7 @@ export async function executeScript(
       
       // Typed resources object
       const tokensObj = vm.newObject();
-      for (const [tokenId, amount] of Object.entries(context.tokens)) {
+      for (const [tokenId, amount] of Object.entries(context.tokens ?? {})) {
         vm.setProp(tokensObj, tokenId, vm.newNumber(amount));
       }
       vm.setProp(vm.global, "tokens", tokensObj);
@@ -147,33 +147,71 @@ export async function executeScript(
       vm.setProp(vm.global, "state", stateObj);
       stateObj.dispose();
       
-      // Expose getNode function
-      const getNodeFn = vm.newFunction("getNode", (idHandle) => {
+      // log() function for debugging scripts (outputs to browser console)
+      const logFn = vm.newFunction("__logRaw", (msgHandle) => {
+        const msg = vm.getString(msgHandle);
+        console.log('[Script log]', msg);
+      });
+      vm.setProp(vm.global, "__logRaw", logFn);
+      logFn.dispose();
+      vm.evalCode(`function log() { var parts = []; for (var i = 0; i < arguments.length; i++) { var v = arguments[i]; parts.push(typeof v === 'object' ? JSON.stringify(v) : String(v)); } __logRaw(parts.join(' ')); }`);
+      
+      // Expose getNode: use individual host functions to avoid QuickJS handle/object issues
+      const gnResFn = vm.newFunction("__gnRes", (idHandle) => {
         const id = vm.getString(idHandle);
         const node = context.getNode(id);
-        if (!node) return vm.null;
-        
-        const nodeObj = vm.newObject();
-        vm.setProp(nodeObj, "resources", vm.newNumber(node.resources));
-        vm.setProp(nodeObj, "capacity", vm.newNumber(node.capacity === -1 ? Infinity : node.capacity));
-        
-        // Add tokens object
-        const nodeTokensObj = vm.newObject();
-        for (const [tokenId, amount] of Object.entries(node.tokens)) {
-          vm.setProp(nodeTokensObj, tokenId, vm.newNumber(amount));
-        }
-        vm.setProp(nodeObj, "tokens", nodeTokensObj);
-        nodeTokensObj.dispose();
-        
-        // Add tokenType if present
-        if (node.tokenType) {
-          vm.setProp(nodeObj, "tokenType", vm.newString(node.tokenType));
-        }
-        
-        return nodeObj;
+        return vm.newNumber(node ? node.resources : -99999);
       });
-      vm.setProp(vm.global, "getNode", getNodeFn);
-      getNodeFn.dispose();
+      vm.setProp(vm.global, "__gnRes", gnResFn); gnResFn.dispose();
+      
+      const gnCapFn = vm.newFunction("__gnCap", (idHandle) => {
+        const id = vm.getString(idHandle);
+        const node = context.getNode(id);
+        return vm.newNumber(node ? (node.capacity === -1 ? 1e18 : node.capacity) : 0);
+      });
+      vm.setProp(vm.global, "__gnCap", gnCapFn); gnCapFn.dispose();
+      
+      const gnExistsFn = vm.newFunction("__gnExists", (idHandle) => {
+        const id = vm.getString(idHandle);
+        const node = context.getNode(id);
+        return vm.newNumber(node ? 1 : 0);
+      });
+      vm.setProp(vm.global, "__gnExists", gnExistsFn); gnExistsFn.dispose();
+      
+      const gnTokensFn = vm.newFunction("__gnTokensJSON", (idHandle) => {
+        const id = vm.getString(idHandle);
+        const node = context.getNode(id);
+        if (!node) return vm.newString("{}");
+        return vm.newString(JSON.stringify(node.tokens ?? {}));
+      });
+      vm.setProp(vm.global, "__gnTokensJSON", gnTokensFn); gnTokensFn.dispose();
+      
+      const gnTypeFn = vm.newFunction("__gnType", (idHandle) => {
+        const id = vm.getString(idHandle);
+        const node = context.getNode(id);
+        return vm.newString(node?.tokenType ?? "");
+      });
+      vm.setProp(vm.global, "__gnType", gnTypeFn); gnTypeFn.dispose();
+      
+      // Define getNode wrapper inside QuickJS
+      const wrapResult = vm.evalCode(`
+        function getNode(id) {
+          if (__gnExists(id) === 0) return null;
+          return {
+            resources: __gnRes(id),
+            capacity: __gnCap(id),
+            tokens: JSON.parse(__gnTokensJSON(id)),
+            tokenType: __gnType(id) || undefined
+          };
+        }
+      `);
+      if (wrapResult.error) {
+        const err = vm.getString(wrapResult.error);
+        wrapResult.error.dispose();
+        console.error('[Script] getNode wrapper error:', err);
+      } else {
+        wrapResult.value.dispose();
+      }
       
       // Expose get function (shorthand for getting specific token)
       const getFn = vm.newFunction("get", (nodeIdHandle, tokenIdHandle) => {
@@ -181,7 +219,7 @@ export async function executeScript(
         const tokenId = vm.getString(tokenIdHandle);
         const node = context.getNode(nodeId);
         if (!node) return vm.newNumber(0);
-        return vm.newNumber(node.tokens[tokenId] ?? 0);
+        return vm.newNumber((node.tokens ?? {})[tokenId] ?? 0);
       });
       vm.setProp(vm.global, "get", getFn);
       getFn.dispose();
@@ -399,6 +437,15 @@ export async function executeBatchScripts(
       vm.setProp(vm.global, "PI", vm.newNumber(Math.PI));
       vm.setProp(vm.global, "E", vm.newNumber(Math.E));
       
+      // log() function for debugging scripts (outputs to browser console)
+      const logFn = vm.newFunction("__logRaw", (msgHandle) => {
+        const msg = vm.getString(msgHandle);
+        console.log('[Script log]', msg);
+      });
+      vm.setProp(vm.global, "__logRaw", logFn);
+      logFn.dispose();
+      vm.evalCode(`function log() { var parts = []; for (var i = 0; i < arguments.length; i++) { var v = arguments[i]; parts.push(typeof v === 'object' ? JSON.stringify(v) : String(v)); } __logRaw(parts.join(' ')); }`);
+      
       // ========== EXECUTE EACH SCRIPT SEQUENTIALLY ==========
       
       for (const entry of entries) {
@@ -446,7 +493,7 @@ export async function executeBatchScripts(
           
           // Tokens object (recreate for each script - different node data)
           const tokensObj = vm.newObject();
-          for (const [tokenId, amount] of Object.entries(ctx.tokens)) {
+          for (const [tokenId, amount] of Object.entries(ctx.tokens ?? {})) {
             vm.setProp(tokensObj, tokenId, vm.newNumber(amount));
           }
           vm.setProp(vm.global, "tokens", tokensObj);
@@ -462,31 +509,62 @@ export async function executeBatchScripts(
           vm.setProp(vm.global, "state", stateObj);
           stateObj.dispose();
           
-          // getNode function - uses SNAPSHOT (ctx.getNode is frozen at tick start)
-          const getNodeFn = vm.newFunction("getNode", (idHandle) => {
+          // getNode: use individual host functions to avoid QuickJS handle/object issues
+          const gnResFn = vm.newFunction("__gnRes", (idHandle) => {
             const id = vm.getString(idHandle);
-            const node = ctx.getNode(id);  // This uses the SNAPSHOT
-            if (!node) return vm.null;
-            
-            const nodeObj = vm.newObject();
-            vm.setProp(nodeObj, "resources", vm.newNumber(node.resources));
-            vm.setProp(nodeObj, "capacity", vm.newNumber(node.capacity === -1 ? Infinity : node.capacity));
-            
-            const nodeTokensObj = vm.newObject();
-            for (const [tokenId, amount] of Object.entries(node.tokens)) {
-              vm.setProp(nodeTokensObj, tokenId, vm.newNumber(amount));
-            }
-            vm.setProp(nodeObj, "tokens", nodeTokensObj);
-            nodeTokensObj.dispose();
-            
-            if (node.tokenType) {
-              vm.setProp(nodeObj, "tokenType", vm.newString(node.tokenType));
-            }
-            
-            return nodeObj;
+            const node = ctx.getNode(id);
+            return vm.newNumber(node ? node.resources : -99999);
           });
-          vm.setProp(vm.global, "getNode", getNodeFn);
-          getNodeFn.dispose();
+          vm.setProp(vm.global, "__gnRes", gnResFn); gnResFn.dispose();
+          
+          const gnCapFn = vm.newFunction("__gnCap", (idHandle) => {
+            const id = vm.getString(idHandle);
+            const node = ctx.getNode(id);
+            return vm.newNumber(node ? (node.capacity === -1 ? 1e18 : node.capacity) : 0);
+          });
+          vm.setProp(vm.global, "__gnCap", gnCapFn); gnCapFn.dispose();
+          
+          const gnExistsFn = vm.newFunction("__gnExists", (idHandle) => {
+            const id = vm.getString(idHandle);
+            const node = ctx.getNode(id);
+            return vm.newNumber(node ? 1 : 0);
+          });
+          vm.setProp(vm.global, "__gnExists", gnExistsFn); gnExistsFn.dispose();
+          
+          const gnTokensFn = vm.newFunction("__gnTokensJSON", (idHandle) => {
+            const id = vm.getString(idHandle);
+            const node = ctx.getNode(id);
+            if (!node) return vm.newString("{}");
+            return vm.newString(JSON.stringify(node.tokens ?? {}));
+          });
+          vm.setProp(vm.global, "__gnTokensJSON", gnTokensFn); gnTokensFn.dispose();
+          
+          const gnTypeFn = vm.newFunction("__gnType", (idHandle) => {
+            const id = vm.getString(idHandle);
+            const node = ctx.getNode(id);
+            return vm.newString(node?.tokenType ?? "");
+          });
+          vm.setProp(vm.global, "__gnType", gnTypeFn); gnTypeFn.dispose();
+          
+          // Define getNode wrapper inside QuickJS
+          const wrapResult = vm.evalCode(`
+            function getNode(id) {
+              if (__gnExists(id) === 0) return null;
+              return {
+                resources: __gnRes(id),
+                capacity: __gnCap(id),
+                tokens: JSON.parse(__gnTokensJSON(id)),
+                tokenType: __gnType(id) || undefined
+              };
+            }
+          `);
+          if (wrapResult.error) {
+            const err = vm.getString(wrapResult.error);
+            wrapResult.error.dispose();
+            console.error(`[Script ${entry.nodeId}] getNode wrapper error:`, err);
+          } else {
+            wrapResult.value.dispose();
+          }
           
           // get function - shorthand using SNAPSHOT
           const getFn = vm.newFunction("get", (nodeIdHandle, tokenIdHandle) => {
@@ -494,7 +572,7 @@ export async function executeBatchScripts(
             const tokenId = vm.getString(tokenIdHandle);
             const node = ctx.getNode(nodeId);  // This uses the SNAPSHOT
             if (!node) return vm.newNumber(0);
-            return vm.newNumber(node.tokens[tokenId] ?? 0);
+            return vm.newNumber((node.tokens ?? {})[tokenId] ?? 0);
           });
           vm.setProp(vm.global, "get", getFn);
           getFn.dispose();
@@ -506,6 +584,7 @@ export async function executeBatchScripts(
           if (evalResult.error) {
             const errorMessage = vm.getString(evalResult.error);
             evalResult.error.dispose();
+            console.warn(`[Script ${entry.nodeId}] Error:`, errorMessage);
             results.push({
               nodeId: entry.nodeId,
               result: {
@@ -519,6 +598,7 @@ export async function executeBatchScripts(
           
           // Get return value
           const value = vm.getNumber(evalResult.value);
+          console.log(`[Script ${entry.nodeId}] Result:`, value);
           evalResult.value.dispose();
           
           // Get updated state
