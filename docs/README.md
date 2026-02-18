@@ -584,8 +584,8 @@ Notes:
 
 | Function | Description |
 |----------|-------------|
-| `getNode(id)` | Get another node's data: `{ resources, capacity, tokens, tokenType }` |
-| **`get(nodeId, tokenId)`** | Get specific token amount from a node |
+| `getNode(id)` | Get another node's data by ID or label: `{ resources, capacity, tokens, tokenType }` |
+| **`get(nodeId, tokenId)`** | Get specific token amount from a node (accepts ID or label) |
 | `state` | Persistent object to store values between ticks |
 | `min()`, `max()`, `floor()`, `ceil()`, `round()` | Math functions |
 | `random()`, `sqrt()`, `pow()`, `sin()`, `cos()`, `tan()`, `log()`, `exp()`, `abs()` | Math functions |
@@ -625,8 +625,8 @@ return state.counter % 3 === 0 ? 10 : 2; // Burst every 3 ticks
 ```
 
 ```javascript
-// React to another node's state
-const warehouse = getNode('warehouse-123');
+// React to another node's state (by label)
+const warehouse = getNode('warehouse'); // Searches by label (case-insensitive)
 if (warehouse && warehouse.resources < 20) {
   return 5; // Produce more when warehouse is low
 }
@@ -635,7 +635,7 @@ return 1;
 
 ```javascript
 // Token-aware production: check gold in another pool
-const goldAmount = get('gold-pool', 'gold');
+const goldAmount = get('treasury', 'gold'); // Can use label instead of ID
 if (goldAmount < 10) {
   return 3; // Produce more when gold is low
 }

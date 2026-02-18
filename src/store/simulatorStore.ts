@@ -1443,7 +1443,15 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     // Create a getter for other nodes (snapshot semantics)
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
     const getNode = (id: string) => {
-      const node = nodeMap.get(id);
+      // Try to find by ID first
+      let node = nodeMap.get(id);
+      
+      // If not found, try to find by label (case-insensitive)
+      if (!node) {
+        const normalizedId = id.toLowerCase();
+        node = nodes.find(n => n.data.label.toLowerCase() === normalizedId);
+      }
+      
       if (!node) return null;
       return { 
         resources: node.data.resources, 
@@ -1455,7 +1463,15 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     
     // Create get function (shorthand)
     const getTokenFromNode = (nodeId: string, tokenId: string): number => {
-      const node = nodeMap.get(nodeId);
+      // Try to find by ID first
+      let node = nodeMap.get(nodeId);
+      
+      // If not found, try to find by label (case-insensitive)
+      if (!node) {
+        const normalizedId = nodeId.toLowerCase();
+        node = nodes.find(n => n.data.label.toLowerCase() === normalizedId);
+      }
+      
       if (!node) return 0;
       return getTokenResources(node.data.typedResources, tokenId);
     };

@@ -571,7 +571,8 @@ Note:
 
 | Funzione | Descrizione |
 |----------|-------------|
-| `getNode(id)` | Ottiene dati di un altro nodo: `{ resources, capacity }` |
+| `getNode(id)` | Ottiene dati di un altro nodo per ID o label: `{ resources, capacity, tokens, tokenType }` |
+| **`get(nodeId, tokenId)`** | Ottiene un token specifico da un nodo (accetta ID o label) |
 | `state` | Oggetto persistente per salvare valori tra i tick |
 | `min()`, `max()`, `floor()`, `ceil()`, `round()` | Funzioni matematiche |
 | `random()`, `sqrt()`, `pow()`, `sin()`, `cos()`, `tan()`, `log()`, `exp()`, `abs()` | Funzioni matematiche |
@@ -611,8 +612,8 @@ return state.counter % 3 === 0 ? 10 : 2; // Burst ogni 3 tick
 ```
 
 ```javascript
-// Reagisce allo stato di un altro nodo
-const warehouse = getNode('warehouse-123');
+// Reagisce allo stato di un altro nodo (per label)
+const warehouse = getNode('magazzino'); // Cerca per label (case-insensitive)
 if (warehouse && warehouse.resources < 20) {
   return 5; // Produce di più quando il magazzino è scarso
 }
