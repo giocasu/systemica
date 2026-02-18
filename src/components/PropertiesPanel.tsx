@@ -70,6 +70,13 @@ export function PropertiesPanel({ nodeId }: PropertiesPanelProps) {
         <span className="type-label">{typeInfo.label}</span>
       </div>
 
+      <div className="property-group node-id-group">
+        <label>ID</label>
+        <code className="node-id-value" title="Click to copy" onClick={() => {
+          navigator.clipboard.writeText(nodeId);
+        }}>{nodeId}</code>
+      </div>
+
       <div className="property-group">
         <label>Label</label>
         <input

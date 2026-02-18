@@ -460,6 +460,28 @@ body {
   color: #fff;
 }
 
+.node-id-group {
+  margin-bottom: 8px !important;
+}
+
+.node-id-value {
+  display: inline-block;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.7rem;
+  color: #888;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: all;
+  transition: background 0.2s, color 0.2s;
+}
+
+.node-id-value:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e94560;
+}
+
 .property-group {
   margin-bottom: 12px;
 }
