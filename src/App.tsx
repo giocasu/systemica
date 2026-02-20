@@ -182,15 +182,30 @@ function Flow() {
     [screenToFlowPosition, addNode]
   );
 
-  // Simulation tick
+  // Simulation tick - await scripts before each tick to avoid race conditions
   useEffect(() => {
     if (!isRunning) return;
 
-    const interval = setInterval(() => {
-      tick();
-    }, 1000 / ticksPerSecond);
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-    return () => clearInterval(interval);
+    const loop = async () => {
+      if (cancelled) return;
+      // Compute scripts BEFORE tick so lastOutput is fresh
+      await useSimulatorStore.getState().executeScriptsAsync();
+      if (cancelled) return;
+      tick();
+      if (cancelled) return;
+      // Schedule next tick
+      timeoutId = setTimeout(loop, 1000 / ticksPerSecond);
+    };
+
+    loop();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId !== null) clearTimeout(timeoutId);
+    };
   }, [isRunning, tick, ticksPerSecond]);
 
   // Get current theme

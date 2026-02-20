@@ -147,6 +147,63 @@ export async function executeScript(
       vm.setProp(vm.global, "state", stateObj);
       stateObj.dispose();
       
+      // Expose getNode via a SINGLE host function that returns JSON strings.
+      // This avoids the host↔sandbox boundary issue where vm.newNumber()
+      // handles are not recognized as native QuickJS numbers when returned
+      // from user scripts.
+      const getNodeJSONFn = vm.newFunction("__getNodeJSON", (idHandle) => {
+        const id = vm.getString(idHandle);
+        const node = context.getNode(id);
+        if (!node) return vm.newString("");
+        return vm.newString(JSON.stringify({
+          resources: node.resources,
+          capacity: node.capacity === -1 ? 1e18 : node.capacity,
+          tokens: node.tokens ?? {},
+          tokenType: node.tokenType ?? ""
+        }));
+      });
+      vm.setProp(vm.global, "__getNodeJSON", getNodeJSONFn);
+      getNodeJSONFn.dispose();
+      
+      // Define getNode and get wrappers in pure QuickJS (all values are native)
+      vm.evalCode(`
+        function getNode(id) {
+          var json = __getNodeJSON(id);
+          if (!json) return null;
+          var obj = JSON.parse(json);
+          if (obj.tokenType === "") obj.tokenType = undefined;
+          return obj;
+        }
+        function get(nodeId, tokenId) {
+          var node = getNode(nodeId);
+          if (!node) return 0;
+          return node.tokens[tokenId] || 0;
+        }
+      `);
+      
+      // Expose Math functions using QuickJS's NATIVE Math object.
+      // This avoids host↔sandbox handle boundary issues that cause
+      // return values from host functions (vm.newNumber) to not be
+      // recognized as proper QuickJS numbers when returned from scripts.
+      vm.evalCode(`
+        var min = Math.min;
+        var max = Math.max;
+        var floor = Math.floor;
+        var ceil = Math.ceil;
+        var round = Math.round;
+        var abs = Math.abs;
+        var sqrt = Math.sqrt;
+        var pow = Math.pow;
+        var sin = Math.sin;
+        var cos = Math.cos;
+        var tan = Math.tan;
+        var exp = Math.exp;
+        var ln = Math.log;
+        var random = Math.random;
+        var PI = Math.PI;
+        var E = Math.E;
+      `);
+      
       // log() function for debugging scripts (outputs to browser console)
       const logFn = vm.newFunction("__logRaw", (msgHandle) => {
         const msg = vm.getString(msgHandle);
@@ -155,98 +212,6 @@ export async function executeScript(
       vm.setProp(vm.global, "__logRaw", logFn);
       logFn.dispose();
       vm.evalCode(`function log() { var parts = []; for (var i = 0; i < arguments.length; i++) { var v = arguments[i]; parts.push(typeof v === 'object' ? JSON.stringify(v) : String(v)); } __logRaw(parts.join(' ')); }`);
-      
-      // Expose getNode: use individual host functions to avoid QuickJS handle/object issues
-      const gnResFn = vm.newFunction("__gnRes", (idHandle) => {
-        const id = vm.getString(idHandle);
-        const node = context.getNode(id);
-        return vm.newNumber(node ? node.resources : -99999);
-      });
-      vm.setProp(vm.global, "__gnRes", gnResFn); gnResFn.dispose();
-      
-      const gnCapFn = vm.newFunction("__gnCap", (idHandle) => {
-        const id = vm.getString(idHandle);
-        const node = context.getNode(id);
-        return vm.newNumber(node ? (node.capacity === -1 ? 1e18 : node.capacity) : 0);
-      });
-      vm.setProp(vm.global, "__gnCap", gnCapFn); gnCapFn.dispose();
-      
-      const gnExistsFn = vm.newFunction("__gnExists", (idHandle) => {
-        const id = vm.getString(idHandle);
-        const node = context.getNode(id);
-        return vm.newNumber(node ? 1 : 0);
-      });
-      vm.setProp(vm.global, "__gnExists", gnExistsFn); gnExistsFn.dispose();
-      
-      const gnTokensFn = vm.newFunction("__gnTokensJSON", (idHandle) => {
-        const id = vm.getString(idHandle);
-        const node = context.getNode(id);
-        if (!node) return vm.newString("{}");
-        return vm.newString(JSON.stringify(node.tokens ?? {}));
-      });
-      vm.setProp(vm.global, "__gnTokensJSON", gnTokensFn); gnTokensFn.dispose();
-      
-      const gnTypeFn = vm.newFunction("__gnType", (idHandle) => {
-        const id = vm.getString(idHandle);
-        const node = context.getNode(id);
-        return vm.newString(node?.tokenType ?? "");
-      });
-      vm.setProp(vm.global, "__gnType", gnTypeFn); gnTypeFn.dispose();
-      
-      // Define getNode wrapper inside QuickJS
-      const wrapResult = vm.evalCode(`
-        function getNode(id) {
-          if (__gnExists(id) === 0) return null;
-          return {
-            resources: __gnRes(id),
-            capacity: __gnCap(id),
-            tokens: JSON.parse(__gnTokensJSON(id)),
-            tokenType: __gnType(id) || undefined
-          };
-        }
-      `);
-      if (wrapResult.error) {
-        const err = vm.getString(wrapResult.error);
-        wrapResult.error.dispose();
-        console.error('[Script] getNode wrapper error:', err);
-      } else {
-        wrapResult.value.dispose();
-      }
-      
-      // Expose get function (shorthand for getting specific token)
-      const getFn = vm.newFunction("get", (nodeIdHandle, tokenIdHandle) => {
-        const nodeId = vm.getString(nodeIdHandle);
-        const tokenId = vm.getString(tokenIdHandle);
-        const node = context.getNode(nodeId);
-        if (!node) return vm.newNumber(0);
-        return vm.newNumber((node.tokens ?? {})[tokenId] ?? 0);
-      });
-      vm.setProp(vm.global, "get", getFn);
-      getFn.dispose();
-      
-      // Expose Math functions
-      const mathFunctions = ['min', 'max', 'floor', 'ceil', 'round', 'abs', 'sqrt', 'pow', 'sin', 'cos', 'tan', 'log', 'exp'];
-      for (const fnName of mathFunctions) {
-        const fn = vm.newFunction(fnName, (...args) => {
-          const nums = args.map(a => vm.getNumber(a));
-          const mathFn = (Math as unknown as Record<string, (...args: number[]) => number>)[fnName];
-          const result = mathFn(...nums);
-          return vm.newNumber(result);
-        });
-        vm.setProp(vm.global, fnName, fn);
-        fn.dispose();
-      }
-      
-      // Expose random
-      const randomFn = vm.newFunction("random", () => {
-        return vm.newNumber(Math.random());
-      });
-      vm.setProp(vm.global, "random", randomFn);
-      randomFn.dispose();
-      
-      // Expose constants
-      vm.setProp(vm.global, "PI", vm.newNumber(Math.PI));
-      vm.setProp(vm.global, "E", vm.newNumber(Math.E));
       
       // Wrap user script to return a value
       const wrappedScript = `
@@ -269,9 +234,15 @@ export async function executeScript(
         };
       }
       
-      // Get return value
-      const value = vm.getNumber(result.value);
+      // Get return value - use vm.dump() for robust type extraction
+      // vm.getNumber() can return NaN for certain QuickJS handle types
+      const rawValue = vm.dump(result.value);
+      console.log('[Script] raw return:', rawValue, 'typeof:', typeof rawValue);
       result.value.dispose();
+      
+      // Coerce to number
+      const value = typeof rawValue === 'number' ? rawValue : Number(rawValue);
+      console.log('[Script] coerced value:', value, 'isFinite:', isFinite(value));
       
       // Get updated state
       const stateHandle = vm.getProp(vm.global, "state");
@@ -416,26 +387,25 @@ export async function executeBatchScripts(
     try {
       // ========== ONE-TIME SETUP (shared across all scripts) ==========
       
-      // Math functions (immutable, shared)
-      const mathFunctions = ['min', 'max', 'floor', 'ceil', 'round', 'abs', 'sqrt', 'pow', 'sin', 'cos', 'tan', 'log', 'exp'];
-      for (const fnName of mathFunctions) {
-        const fn = vm.newFunction(fnName, (...args) => {
-          const nums = args.map(a => vm.getNumber(a));
-          const mathFn = (Math as unknown as Record<string, (...args: number[]) => number>)[fnName];
-          return vm.newNumber(mathFn(...nums));
-        });
-        vm.setProp(vm.global, fnName, fn);
-        fn.dispose();
-      }
-      
-      // Random function
-      const randomFn = vm.newFunction("random", () => vm.newNumber(Math.random()));
-      vm.setProp(vm.global, "random", randomFn);
-      randomFn.dispose();
-      
-      // Constants
-      vm.setProp(vm.global, "PI", vm.newNumber(Math.PI));
-      vm.setProp(vm.global, "E", vm.newNumber(Math.E));
+      // Math functions using QuickJS's NATIVE Math object (avoids host↔sandbox handle issues)
+      vm.evalCode(`
+        var min = Math.min;
+        var max = Math.max;
+        var floor = Math.floor;
+        var ceil = Math.ceil;
+        var round = Math.round;
+        var abs = Math.abs;
+        var sqrt = Math.sqrt;
+        var pow = Math.pow;
+        var sin = Math.sin;
+        var cos = Math.cos;
+        var tan = Math.tan;
+        var exp = Math.exp;
+        var ln = Math.log;
+        var random = Math.random;
+        var PI = Math.PI;
+        var E = Math.E;
+      `);
       
       // log() function for debugging scripts (outputs to browser console)
       const logFn = vm.newFunction("__logRaw", (msgHandle) => {
@@ -509,73 +479,36 @@ export async function executeBatchScripts(
           vm.setProp(vm.global, "state", stateObj);
           stateObj.dispose();
           
-          // getNode: use individual host functions to avoid QuickJS handle/object issues
-          const gnResFn = vm.newFunction("__gnRes", (idHandle) => {
+          // getNode via single host function returning JSON (avoids handle boundary issues)
+          const getNodeJSONFn = vm.newFunction("__getNodeJSON", (idHandle) => {
             const id = vm.getString(idHandle);
             const node = ctx.getNode(id);
-            return vm.newNumber(node ? node.resources : -99999);
+            if (!node) return vm.newString("");
+            return vm.newString(JSON.stringify({
+              resources: node.resources,
+              capacity: node.capacity === -1 ? 1e18 : node.capacity,
+              tokens: node.tokens ?? {},
+              tokenType: node.tokenType ?? ""
+            }));
           });
-          vm.setProp(vm.global, "__gnRes", gnResFn); gnResFn.dispose();
+          vm.setProp(vm.global, "__getNodeJSON", getNodeJSONFn);
+          getNodeJSONFn.dispose();
           
-          const gnCapFn = vm.newFunction("__gnCap", (idHandle) => {
-            const id = vm.getString(idHandle);
-            const node = ctx.getNode(id);
-            return vm.newNumber(node ? (node.capacity === -1 ? 1e18 : node.capacity) : 0);
-          });
-          vm.setProp(vm.global, "__gnCap", gnCapFn); gnCapFn.dispose();
-          
-          const gnExistsFn = vm.newFunction("__gnExists", (idHandle) => {
-            const id = vm.getString(idHandle);
-            const node = ctx.getNode(id);
-            return vm.newNumber(node ? 1 : 0);
-          });
-          vm.setProp(vm.global, "__gnExists", gnExistsFn); gnExistsFn.dispose();
-          
-          const gnTokensFn = vm.newFunction("__gnTokensJSON", (idHandle) => {
-            const id = vm.getString(idHandle);
-            const node = ctx.getNode(id);
-            if (!node) return vm.newString("{}");
-            return vm.newString(JSON.stringify(node.tokens ?? {}));
-          });
-          vm.setProp(vm.global, "__gnTokensJSON", gnTokensFn); gnTokensFn.dispose();
-          
-          const gnTypeFn = vm.newFunction("__gnType", (idHandle) => {
-            const id = vm.getString(idHandle);
-            const node = ctx.getNode(id);
-            return vm.newString(node?.tokenType ?? "");
-          });
-          vm.setProp(vm.global, "__gnType", gnTypeFn); gnTypeFn.dispose();
-          
-          // Define getNode wrapper inside QuickJS
-          const wrapResult = vm.evalCode(`
+          // getNode and get wrappers in pure QuickJS
+          vm.evalCode(`
             function getNode(id) {
-              if (__gnExists(id) === 0) return null;
-              return {
-                resources: __gnRes(id),
-                capacity: __gnCap(id),
-                tokens: JSON.parse(__gnTokensJSON(id)),
-                tokenType: __gnType(id) || undefined
-              };
+              var json = __getNodeJSON(id);
+              if (!json) return null;
+              var obj = JSON.parse(json);
+              if (obj.tokenType === "") obj.tokenType = undefined;
+              return obj;
+            }
+            function get(nodeId, tokenId) {
+              var node = getNode(nodeId);
+              if (!node) return 0;
+              return node.tokens[tokenId] || 0;
             }
           `);
-          if (wrapResult.error) {
-            const err = vm.getString(wrapResult.error);
-            wrapResult.error.dispose();
-            console.error(`[Script ${entry.nodeId}] getNode wrapper error:`, err);
-          } else {
-            wrapResult.value.dispose();
-          }
-          
-          // get function - shorthand using SNAPSHOT
-          const getFn = vm.newFunction("get", (nodeIdHandle, tokenIdHandle) => {
-            const nodeId = vm.getString(nodeIdHandle);
-            const tokenId = vm.getString(tokenIdHandle);
-            const node = ctx.getNode(nodeId);  // This uses the SNAPSHOT
-            if (!node) return vm.newNumber(0);
-            return vm.newNumber((node.tokens ?? {})[tokenId] ?? 0);
-          });
-          vm.setProp(vm.global, "get", getFn);
-          getFn.dispose();
           
           // Execute the script
           const wrappedScript = `(function() { ${entry.script} })()`;
@@ -596,10 +529,13 @@ export async function executeBatchScripts(
             continue;
           }
           
-          // Get return value
-          const value = vm.getNumber(evalResult.value);
-          console.log(`[Script ${entry.nodeId}] Result:`, value);
+          // Get return value - use vm.dump() for robust type extraction
+          const rawValue = vm.dump(evalResult.value);
+          console.log(`[Script ${entry.nodeId}] raw return:`, rawValue, 'typeof:', typeof rawValue);
           evalResult.value.dispose();
+          
+          const value = typeof rawValue === 'number' ? rawValue : Number(rawValue);
+          console.log(`[Script ${entry.nodeId}] coerced value:`, value);
           
           // Get updated state
           const stateHandle = vm.getProp(vm.global, "state");

@@ -476,17 +476,19 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   },
 
   toggleRunning: () => {
-    const wasRunning = get().isRunning;
     set((state) => ({ isRunning: !state.isRunning }));
-    
-    // Pre-execute scripts when starting simulation to avoid "0" first tick
-    if (!wasRunning) {
-      get().executeScriptsAsync();
-    }
+    // The play loop in App.tsx handles executeScriptsAsync() before each tick
   },
 
   tick: () => {
     const { nodes, edges, currentTick } = get();
+
+    // DEBUG: verify scriptState at the very start of tick
+    for (const n of nodes) {
+      if (n.data.scriptState?.lastOutput !== undefined) {
+        console.log(`[tick] START get().nodes node ${n.id} lastOutput=`, n.data.scriptState.lastOutput);
+      }
+    }
 
     const nodeMap = new Map(nodes.map((n) => [n.id, { ...n, data: { ...n.data, typedResources: { ...n.data.typedResources } } }]));
     for (const node of nodeMap.values()) {
@@ -584,6 +586,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
       if (mode === 'script' && node.data.script) {
         const lastOutput = node.data.scriptState?.lastOutput;
+        console.log(`[tick] Node ${node.id} scriptState:`, JSON.stringify(node.data.scriptState), 'lastOutput:', lastOutput, 'typeof:', typeof lastOutput);
         return typeof lastOutput === 'number' ? lastOutput : node.data.productionRate;
       }
 
@@ -1425,7 +1428,10 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       resourceHistory: newHistory,
     });
 
-    get().executeScriptsAsync();
+    // NOTE: do NOT call executeScriptsAsync() here fire-and-forget.
+    // It causes a race condition where the async result overwrites lastOutput
+    // before the next tick reads it. Instead, callers (step/play loop) must
+    // explicitly await executeScriptsAsync() before calling tick().
   },
   
   // Execute all scripts asynchronously and cache their results
@@ -1491,41 +1497,79 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         tokens: node.data.typedResources,
         getNode,
         get: getTokenFromNode,
-        state: node.data.scriptState || {},
+        // Filter out lastOutput/lastError from state to avoid them leaking
+        // back via newState and overwriting the explicit lastOutput assignment
+        state: Object.fromEntries(
+          Object.entries(node.data.scriptState || {}).filter(
+            ([k]) => k !== 'lastOutput' && k !== 'lastError'
+          )
+        ),
       }
     }));
     
     // Execute all scripts in batch (single runtime/context)
     const results = await executeBatchScripts(entries);
     
+    // Log script results for debugging
+    for (const r of results) {
+      console.log(`[executeScriptsAsync] Node ${r.nodeId}: success=${r.result.success}, value=${r.result.value}, error=${r.result.error ?? 'none'}`);
+    }
+    
     // Update nodes with script results
-    set({
-      nodes: get().nodes.map(node => {
-        const scriptResult = results.find(r => r.nodeId === node.id);
-        if (!scriptResult) return node;
-        
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            scriptState: {
-              ...node.data.scriptState,
-              lastOutput: scriptResult.result.value,
-              lastError: scriptResult.result.error,
-              ...(scriptResult.result.newState || {}),
-            },
+    const resultNodeIds = results.map(r => r.nodeId);
+    console.log(`[executeScriptsAsync] result nodeIds:`, JSON.stringify(resultNodeIds));
+    console.log(`[executeScriptsAsync] store nodeIds:`, JSON.stringify(get().nodes.map(n => n.id)));
+    
+    const updatedNodes = get().nodes.map(node => {
+      const scriptResult = results.find(r => r.nodeId === node.id);
+      if (node.data.script) {
+        console.log(`[MAP] node.id="${node.id}" (len=${node.id.length}) found=${!!scriptResult} resultValue=${scriptResult?.result?.value}`);
+      }
+      if (!scriptResult) return node;
+      
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          scriptState: {
+            ...node.data.scriptState,
+            ...(scriptResult.result.newState || {}),
+            // These MUST come AFTER newState spread to prevent overwrite
+            lastOutput: scriptResult.result.value,
+            lastError: scriptResult.result.error,
           },
-        };
-      }),
+        },
+      };
     });
+    
+    // Verify the data BEFORE set()
+    for (const n of updatedNodes) {
+      if (n.data.scriptState?.lastOutput !== undefined) {
+        console.log(`[executeScriptsAsync] BEFORE set() node ${n.id} lastOutput=`, n.data.scriptState.lastOutput);
+      }
+    }
+    
+    set({ nodes: updatedNodes });
+    
+    // Verify AFTER set()
+    for (const n of get().nodes) {
+      if (n.data.scriptState?.lastOutput !== undefined) {
+        console.log(`[executeScriptsAsync] AFTER set() node ${n.id} lastOutput=`, n.data.scriptState.lastOutput);
+      }
+    }
   },
 
   step: async () => {
-    // Pre-execute scripts before the first tick to ensure lastOutput is populated
-    const { currentTick } = get();
-    if (currentTick === 0) {
-      await get().executeScriptsAsync();
+    // Always pre-execute scripts before each tick to ensure lastOutput is fresh
+    await get().executeScriptsAsync();
+    
+    // Verify state right before calling tick
+    for (const n of get().nodes) {
+      if (n.data.scriptState?.lastOutput !== undefined) {
+        console.log(`[step] BEFORE tick() node ${n.id} lastOutput=`, n.data.scriptState.lastOutput);
+      }
     }
+    
     get().tick();
   },
 
