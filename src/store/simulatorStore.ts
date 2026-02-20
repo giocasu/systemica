@@ -12,7 +12,7 @@ import {
 import { NodeData, NodeType, nodeDefaults, TypedResources } from '../types';
 import { getTemplateById } from '../templates';
 import { evaluateFormula } from '../utils/formulaEvaluator';
-import { executeBatchScripts, BatchScriptEntry } from '../utils/scriptRunner';
+import { executeBatchScripts, BatchScriptEntry, isScriptDebug } from '../utils/scriptRunner';
 import { 
   getTotalResources, 
   addTokenResources, 
@@ -483,10 +483,11 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   tick: () => {
     const { nodes, edges, currentTick } = get();
 
-    // DEBUG: verify scriptState at the very start of tick
-    for (const n of nodes) {
-      if (n.data.scriptState?.lastOutput !== undefined) {
-        console.log(`[tick] START get().nodes node ${n.id} lastOutput=`, n.data.scriptState.lastOutput);
+    if (isScriptDebug()) {
+      for (const n of nodes) {
+        if (n.data.scriptState?.lastOutput !== undefined) {
+          console.log(`[tick] START node ${n.id} lastOutput=`, n.data.scriptState.lastOutput);
+        }
       }
     }
 
@@ -586,7 +587,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
       if (mode === 'script' && node.data.script) {
         const lastOutput = node.data.scriptState?.lastOutput;
-        console.log(`[tick] Node ${node.id} scriptState:`, JSON.stringify(node.data.scriptState), 'lastOutput:', lastOutput, 'typeof:', typeof lastOutput);
+        if (isScriptDebug()) console.log(`[tick] Node ${node.id} scriptState:`, JSON.stringify(node.data.scriptState), 'lastOutput:', lastOutput);
         return typeof lastOutput === 'number' ? lastOutput : node.data.productionRate;
       }
 
@@ -1511,19 +1512,19 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     const results = await executeBatchScripts(entries);
     
     // Log script results for debugging
-    for (const r of results) {
-      console.log(`[executeScriptsAsync] Node ${r.nodeId}: success=${r.result.success}, value=${r.result.value}, error=${r.result.error ?? 'none'}`);
+    if (isScriptDebug()) {
+      for (const r of results) {
+        console.log(`[executeScriptsAsync] Node ${r.nodeId}: success=${r.result.success}, value=${r.result.value}, error=${r.result.error ?? 'none'}`);
+      }
+      const resultNodeIds = results.map(r => r.nodeId);
+      console.log(`[executeScriptsAsync] result nodeIds:`, JSON.stringify(resultNodeIds));
+      console.log(`[executeScriptsAsync] store nodeIds:`, JSON.stringify(get().nodes.map(n => n.id)));
     }
-    
-    // Update nodes with script results
-    const resultNodeIds = results.map(r => r.nodeId);
-    console.log(`[executeScriptsAsync] result nodeIds:`, JSON.stringify(resultNodeIds));
-    console.log(`[executeScriptsAsync] store nodeIds:`, JSON.stringify(get().nodes.map(n => n.id)));
     
     const updatedNodes = get().nodes.map(node => {
       const scriptResult = results.find(r => r.nodeId === node.id);
-      if (node.data.script) {
-        console.log(`[MAP] node.id="${node.id}" (len=${node.id.length}) found=${!!scriptResult} resultValue=${scriptResult?.result?.value}`);
+      if (isScriptDebug() && node.data.script) {
+        console.log(`[MAP] node.id="${node.id}" found=${!!scriptResult} resultValue=${scriptResult?.result?.value}`);
       }
       if (!scriptResult) return node;
       
@@ -1542,19 +1543,21 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       };
     });
     
-    // Verify the data BEFORE set()
-    for (const n of updatedNodes) {
-      if (n.data.scriptState?.lastOutput !== undefined) {
-        console.log(`[executeScriptsAsync] BEFORE set() node ${n.id} lastOutput=`, n.data.scriptState.lastOutput);
+    if (isScriptDebug()) {
+      for (const n of updatedNodes) {
+        if (n.data.scriptState?.lastOutput !== undefined) {
+          console.log(`[executeScriptsAsync] BEFORE set() node ${n.id} lastOutput=`, n.data.scriptState.lastOutput);
+        }
       }
     }
     
     set({ nodes: updatedNodes });
     
-    // Verify AFTER set()
-    for (const n of get().nodes) {
-      if (n.data.scriptState?.lastOutput !== undefined) {
-        console.log(`[executeScriptsAsync] AFTER set() node ${n.id} lastOutput=`, n.data.scriptState.lastOutput);
+    if (isScriptDebug()) {
+      for (const n of get().nodes) {
+        if (n.data.scriptState?.lastOutput !== undefined) {
+          console.log(`[executeScriptsAsync] AFTER set() node ${n.id} lastOutput=`, n.data.scriptState.lastOutput);
+        }
       }
     }
   },
@@ -1563,10 +1566,11 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     // Always pre-execute scripts before each tick to ensure lastOutput is fresh
     await get().executeScriptsAsync();
     
-    // Verify state right before calling tick
-    for (const n of get().nodes) {
-      if (n.data.scriptState?.lastOutput !== undefined) {
-        console.log(`[step] BEFORE tick() node ${n.id} lastOutput=`, n.data.scriptState.lastOutput);
+    if (isScriptDebug()) {
+      for (const n of get().nodes) {
+        if (n.data.scriptState?.lastOutput !== undefined) {
+          console.log(`[step] BEFORE tick() node ${n.id} lastOutput=`, n.data.scriptState.lastOutput);
+        }
       }
     }
     

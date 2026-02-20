@@ -15,6 +15,14 @@
 import { newQuickJSWASMModule, QuickJSWASMModule } from "quickjs-emscripten";
 import { TypedResources } from '../types';
 
+/**
+ * Debug mode for script execution.
+ * Toggle at runtime via browser console: window.__SYSTEMICA_DEBUG = true
+ */
+export function isScriptDebug(): boolean {
+  return typeof window !== 'undefined' && !!(window as any).__SYSTEMICA_DEBUG;
+}
+
 // Singleton for the QuickJS module (loads WASM once)
 let quickJSModule: QuickJSWASMModule | null = null;
 let moduleLoading: Promise<QuickJSWASMModule> | null = null;
@@ -237,12 +245,12 @@ export async function executeScript(
       // Get return value - use vm.dump() for robust type extraction
       // vm.getNumber() can return NaN for certain QuickJS handle types
       const rawValue = vm.dump(result.value);
-      console.log('[Script] raw return:', rawValue, 'typeof:', typeof rawValue);
+      if (isScriptDebug()) console.log('[Script] raw return:', rawValue, 'typeof:', typeof rawValue);
       result.value.dispose();
       
       // Coerce to number
       const value = typeof rawValue === 'number' ? rawValue : Number(rawValue);
-      console.log('[Script] coerced value:', value, 'isFinite:', isFinite(value));
+      if (isScriptDebug()) console.log('[Script] coerced value:', value, 'isFinite:', isFinite(value));
       
       // Get updated state
       const stateHandle = vm.getProp(vm.global, "state");
@@ -531,11 +539,11 @@ export async function executeBatchScripts(
           
           // Get return value - use vm.dump() for robust type extraction
           const rawValue = vm.dump(evalResult.value);
-          console.log(`[Script ${entry.nodeId}] raw return:`, rawValue, 'typeof:', typeof rawValue);
+          if (isScriptDebug()) console.log(`[Script ${entry.nodeId}] raw return:`, rawValue, 'typeof:', typeof rawValue);
           evalResult.value.dispose();
           
           const value = typeof rawValue === 'number' ? rawValue : Number(rawValue);
-          console.log(`[Script ${entry.nodeId}] coerced value:`, value);
+          if (isScriptDebug()) console.log(`[Script ${entry.nodeId}] coerced value:`, value);
           
           // Get updated state
           const stateHandle = vm.getProp(vm.global, "state");
